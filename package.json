@@ -6,7 +6,7 @@
   "scripts": {
     "start": "nodemon server/main.ts",
     "build": "NODE_ENV=production webpack",
-    "dev": "NODE_ENV=development nodemon util/classStructure.ts",
+    "dev": "NODE_ENV=development nodemon ./util/useEffect.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -19,12 +19,11 @@
     "@babel/core": "^7.5.5",
     "@babel/preset-env": "^7.5.5",
     "@babel/preset-react": "^7.0.0",
+    "@babel/preset-typescript": "^7.3.3",
     "@types/react": "^16.9.2",
     "@types/react-dom": "^16.9.0",
     "babel-loader": "^8.0.6",
     "css-loader": "^3.2.0",
-    "electron": "^6.0.2",
-    "electron-webpack": "^2.7.4",
     "nodemon": "^1.19.1",
     "sass-loader": "^7.2.0",
     "style-loader": "^1.0.0",
@@ -35,6 +34,7 @@
     "webpack-dev-server": "^3.8.0"
   },
   "dependencies": {
+    "@babel/generator": "^7.5.5",
     "@babel/parser": "^7.5.5",
     "@babel/traverse": "^7.5.5",
     "@babel/types": "^7.5.5",

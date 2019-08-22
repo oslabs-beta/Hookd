@@ -1,6 +1,6 @@
 import React, {Component} from 'react';
-import UserWrapper from './containers/UserWrapper.jsx.js';
-import NameContext from './context.js.js';
+import UserWrapper from './containers/UserWrapper';
+import NameContext from './context';
 
 //[user, setUser] = useState([]);
 //const App = (props) => {}
@@ -18,7 +18,10 @@ class App extends Component {
     this.setState({name: 'Devon', isAuthenticated: true})
   }
   componentDidMount() {
-   //fetch to swapi 
+    fetch('/someapi')
+    .then(data => data.json())
+    .then(data => console.log(data))
+  
   }
   
   componentDidUpdate(prevprops, prevstate) {
@@ -35,7 +38,7 @@ class App extends Component {
         <div>
           Hello World
         </div>
-      <UserWrapper user = {this.state.user} isAuthenticatd = {this.state.isAuthenticated}></UserWrapper>
+      <UserWrapper user = {this.state.user} isAuthenticated = {this.state.isAuthenticated}></UserWrapper>
       </NameContext.Provider>
       );
   }
