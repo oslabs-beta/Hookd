@@ -1,7 +1,8 @@
 {
   "nodemonConfig": {
     "ignore": [
-      "ast.jsx"
+      "ast.jsx",
+      "test/*"
     ]
   }
 }

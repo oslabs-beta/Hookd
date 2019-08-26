@@ -29,6 +29,7 @@ class App extends Component {
   }
   render() {
     return (
+
       <NameContext.Consumer value = {this.state.user}>
         <div>
           Hello World
