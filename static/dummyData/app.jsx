@@ -31,11 +31,11 @@ class App extends Component {
   }
   render() {
     return (
-      <NameContext.Provider value = {this.state.user}>
+      <NameContext.Provider value = {this.state.user[0]}>
         <div>
           Hello World
         </div>
-      <UserWrapper user = {this.state.user} isAuthenticatd = {this.state.isAuthenticated}></UserWrapper>
+      <UserWrapper user = {this.state.user[0]} isAuthenticatd = {this.state.isAuthenticated }></UserWrapper>
       </NameContext.Provider>
       );
   }

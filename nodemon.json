@@ -1,0 +1,7 @@
+{
+  "nodemonConfig": {
+    "ignore": [
+      "test/*"
+    ]
+  }
+}
