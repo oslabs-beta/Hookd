@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import UserWrapper from './containers/UserWrapper.jsx';
 import NameContext from './context.js';
 

@@ -183,7 +183,7 @@ parserMethods.traverse(ast, {
   // specify an entry method to traverse downward
   enter(path: any) {
     // traverse through our visitor that we defined above
-    // path.traverse(ImpSpecVisitor);
+    path.traverse(ImpSpecVisitor);
     // path.traverse(ClassDeclarationVisitor);
     path.traverse(ImpDeclVisitor);
     path.traverse(UseContextDecl);
