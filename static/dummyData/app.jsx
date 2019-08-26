@@ -1,7 +1,7 @@
 import React, {Component} from 'react';
-import UserWrapper from './containers/UserWrapper.jsx';
-import NameContext from './context.js';
 
+import UserWrapper from './containers/UserWrapper';
+import NameContext from './context';
 class App extends Component {
   constructor(props) {
     super(props);
@@ -16,7 +16,9 @@ class App extends Component {
     this.setState({name: 'Devon', isAuthenticated: true})
   }
   componentDidMount() {
-
+    fetch('/someapi')
+    .then(data => data.json())
+    .then(data => console.log(data))
   }
   
   componentDidUpdate(prevprops, prevstate) {
