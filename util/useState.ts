@@ -60,9 +60,9 @@ const memberExpVisitor: object = {
       // console.log(path.node.property.name)
       console.log(`yee i'm inside of member expression`)
       setStateToHooks(path.parentPath)
-    } else if (path.node.property.name === 'state' && t.isThisExpression(path.node.object)){
+    } else if (path.node.property.name === 'state'){
       console.log('gon change some state: ', path.node);
-      stateToHooks(path)
+      stateToHooks(path.parentPath)
     }
   }
 }
@@ -123,10 +123,10 @@ function setStateToHooks(parentPath: any) {
  * 
  * @param parentPath path.parentPath. this. what it says.
  */
-function stateToHooks(path: any) {
-  console.log(path.node);
-  path.parentPath.remove();
-}
+  function stateToHooks (parentPath: any) {
+    if (t.isMemberExpression(parentPath.parentPath.node)) parentPath.parentPath.node.object = parentPath.node.property;
+	  else parentPath.replaceWith(parentPath.node.property);
+  }
 
 /**
  * this will uppercase the first letter in the string
