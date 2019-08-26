@@ -60,7 +60,7 @@ const memberExpVisitor: object = {
       // console.log(path.node.property.name)
       console.log(`yee i'm inside of member expression`)
       setStateToHooks(path.parentPath)
-    } else if (path.node.property.name === 'state'){
+    } else if (path.node.property.name === 'state' && t.isThisExpression(path.node.object)){
       console.log('gon change some state: ', path.node);
       stateToHooks(path.parentPath)
     }
