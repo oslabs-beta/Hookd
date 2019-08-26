@@ -1,4 +1,7 @@
 import * as parserMethods from './parser';
+import { PassThrough } from 'stream';
+import { type } from 'os';
+const {parse,traverse,t,generate} = parserMethods;
 const fs: any = require('fs');
 const path: any = require('path');
 
@@ -14,6 +17,11 @@ interface Node {
   name: string;
   Identifier: any;
   body: {body: any []};
+  local: {name: string};
+  object: {name: string};
+  specifiers: {name: string};
+  property: {name: string}
+
 }
 
 interface Path {
@@ -35,8 +43,83 @@ interface Path {
 //     }
 //   }
 // )};
+const DeclarationStore: string[] = [];
+
+//creat function to go through import statements and store in array, checking the Method Defenition 
+const ImpDeclVisitor: {ImportDeclaration: (path: Path) => void} = { 
+  ImportDeclaration(path: Path): void {
+    // console.log('ImportDeclaration path is', path.node)
+    // console.log('Pre-traversal, DeclarationStore is' , DeclarationStore);
+
+    //go through import statements storing in DeclStore each identifier name['React','Component, UserWrapper, NameContext]
+
+    // console.log('path.node is ', path.node);
+    path.traverse({
+      ImportDefaultSpecifier (path: Path): void {
+        // console.log('inside path traversal of importDefaultSpecifier')
+        // console.log('ImportDefaultSpecifier path is:', path.node)
+        // let array = path.node.local;
+        // let value = path.node.local.name;
+        DeclarationStore.push(path.node.local.name);
+        // console.log('is path.node.local an array?:', Array.isArray(path.node.local));
+        // console.log('path.node.local looks like this:', path.node.local);
+        // console.log('array looks like this', array);
+        // console.log('value pulled from path.node.local is', value);
+      }
+    })
+    //look into specs first, for each look at 
+    //or traverse through identifiers like below and look for defenition
+    // console.log('DeclarationStore is' , DeclarationStore);
+  }
+}
+    //context variable to store the context
+    //boolean indicating if 'provider' or 'consumer is present in the Declaration 
+    // const isProviderOrConsumer: boolean = false;
+
+let contextToUse: any = null;
+
+const ReturnStatementVisitor: {JSXMemberExpression: (path: Path) => void} = {
+    //if DeclareStore includes path.get...path.get('JSXIdentifier').t.identifier({name})  //do the conversion
+    
+  JSXMemberExpression(path: Path): void {
+    console.log('inside the classMethod traversal stage of this whole fuckin process')
+
+    //this is the direct route to the left and right side of the JSX expression
+    //grab value at path.node.property.name
+    console.log('path.node.property.name is ---->', path.node.property.name);
+    console.log('path.node.object.name is ---->', path.node.object.name);
+    //might not be necessary to check the right side could juest check the left, it's just one more level of nesting
+    //if right side of expression is "consumer"{
+    if(path.node.property.name.toLowerCase() === 'consumer'){
+      console.group('match found')
+      // if DeclarationStore includes left side expession
+      if(DeclarationStore.includes(path.node.object.name)){
+        contextToUse = path.node.object.name;
+        console.log('context is found and contextToUse is', contextToUse);
+        // path.get('body').unshiftContainer('body',
+        //   t.expressionStatement(
+        //     t.variableDeclaration("const", 
+        //     [t.variableDeclarator(
+        //       t.identifier('imported'+`${contextToUse}`), 
+        //       t.assignmentExpression(t.identifier("useContext")),
+        //       t.callExpression(`${contextToUse}`)
+        //       )]
+        //     )
+        //   )
+        // )
+      }
+    }
+
+
+    // if the contextToUse we pulled out is in DeclarationStore
+    // enter into component, in component insertBefore or insertAfter
+    // unshift container, push container
+  }  
+}
+
 
 ​
+
 const ImpSpecVisitor: {ImportSpecifier: (path: Path) => void} ={
   // method for traversing through all the ImportSpecifiers
   ImportSpecifier(path: Path): void {
@@ -45,9 +128,9 @@ const ImpSpecVisitor: {ImportSpecifier: (path: Path) => void} ={
       // console.log(path.node);
       // replace the current path (importSpecifier) with multiple new importSpcefiers
       path.replaceWithMultiple([
-        parserMethods.t.importSpecifier(parserMethods.t.identifier('useState'), parserMethods.t.identifier('useState')),
-        parserMethods.t.importSpecifier(parserMethods.t.identifier('useEffect'), parserMethods.t.identifier('useEffect')),
-        parserMethods.t.importSpecifier(parserMethods.t.identifier('useContext'), parserMethods.t.identifier('useContext')),
+        t.importSpecifier(t.identifier('useState'), t.identifier('useState')),
+        t.importSpecifier(t.identifier('useEffect'), t.identifier('useEffect')),
+        t.importSpecifier(t.identifier('useContext'), t.identifier('useContext')),
       ]);
     }
     // console.log('path.node is ', path.node);
@@ -65,37 +148,35 @@ const ClassDeclarationVisitor: {ClassDeclaration: (path: Path) => void} = {
     
     if(path.get('id').isIdentifier({ name: "App"})){
       const blockStatement = path.node.body.body;
-      console.log('blockStatement is', blockStatement)
-      const props: any [] = hasProps ? [parserMethods.t.identifier("props")] : [];
-      //Delete Experiment
-      //NEED VISITORS TO 
+      // console.log('blockStatement is', blockStatement)
+      const props: any [] = hasProps ? [t.identifier("props")] : [];
+      
       path.replaceWith(
-        parserMethods.t.variableDeclaration("const", 
-        [parserMethods.t.variableDeclarator(
-          parserMethods.t.identifier("App"), 
-          parserMethods.t.arrowFunctionExpression(props, parserMethods.t.blockStatement(blockStatement) ) 
+        t.variableDeclaration("const", 
+        [t.variableDeclarator(
+          t.identifier("App"), 
+          t.arrowFunctionExpression(props, t.blockStatement(blockStatement) ) 
           )
-         ])
+        ])
       )
     }  
   }
 }
 
 
+
 ​
-// const classDeclarationVisitor: {ClassDeclaration: (path: Path) => void} = {
-// ClassDeclaration(path: Path): void {
-//   if (path.get('type').isClassDeclaration())
-// }
-​
-// }
+
 // the main method to traverse the ast
 parserMethods.traverse(ast, {
   // specify an entry method to traverse downward
   enter(path: any) {
     // traverse through our visitor that we defined above
-    path.traverse(ImpSpecVisitor);
-    path.traverse(ClassDeclarationVisitor);
+    // path.traverse(ImpSpecVisitor);
+    // path.traverse(ClassDeclarationVisitor);
+    path.traverse(ImpDeclVisitor);
+    path.traverse(ReturnStatementVisitor);
+
   }
 })
 // console.log(parserMethods.generate);
