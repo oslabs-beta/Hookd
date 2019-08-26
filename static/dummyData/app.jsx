@@ -18,20 +18,28 @@ class App extends Component {
     this.setState({name: 'Devon', isAuthenticated: true})
   }
   componentDidMount() {
-    fetch('/someapi')
-    .then(data => data.json())
-    .then(data => console.log(data))
-  
+    document.title = `You clicked ${this.state.count} times`;
+    // function changeUserHandler(a, b) {
+    //   console.log(this.state.count);
+    // }
+    ChatAPI.subscribeToFriendStatus(
+      this.props.friend.id,
+      this.handleStatusChange
+    );
   }
-  
-  componentDidUpdate(prevprops, prevstate) {
-	//check if prevprops or prevstate has changed
-    //if it does then call the fetch method
+
+  componentDidUpdate() {
+    document.title = `You clicked ${this.state.count} times`;
+    changeUserHandler();
   }
-  
+
   componentWillUnmount() {
-	//unsubscribe from fetch polling or other subscription api
+    ChatAPI.unsubscribeFromFriendStatus(
+      this.props.friend.id,
+      this.handleStatusChange
+    );
   }
+
   render() {
     return (
       <NameContext.Provider value = {this.state.user}>
