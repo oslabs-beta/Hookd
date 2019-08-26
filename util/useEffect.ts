@@ -1,6 +1,6 @@
 // create functions here and export it in object
 import {parse,traverse,t,generate} from './parser';
-import {Node, Path, stateDep} from './constants/interfaces';
+import {Path, stateDep} from './constants/interfaces';
 import {createUseEffect, createFunctionDefinitions, checkKeyIdentifier} from './helperfunctions';
 import * as names from './constants/names';
 const fs: any = require('fs');
