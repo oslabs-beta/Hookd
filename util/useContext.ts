@@ -1,6 +1,7 @@
 import * as parserMethods from './parser';
 import { PassThrough } from 'stream';
 import { type } from 'os';
+import { ENETRESET } from 'constants';
 const {parse,traverse,t,generate} = parserMethods;
 const fs: any = require('fs');
 const path: any = require('path');
@@ -20,8 +21,9 @@ interface Node {
   local: {name: string};
   object: {name: string};
   specifiers: {name: string};
-  property: {name: string}
-
+  property: {name: string};
+  superClass: {name: string};
+  operator:{body: any[]}
 }
 
 interface Path {
@@ -32,17 +34,11 @@ interface Path {
   findParent: (callback: (path: Path) => any) => any;
   isImportSpecifier: () => any;
   get: (type: string) => any;
+  insertAfter: (newNode: any) => any;
+  insertBefore: (newNode: any) => any
 }
 
-// const changeNameContext = ( oldContext: string, newContext: string): void => { 
-//   parserMethods.traverse(ast, {
-//     enter(path) {
-//       if ( path.node.type === "Identifier" && path.node.name === oldContext ) {
-//         path.node.name = newContext;
-//       }
-//     }
-//   }
-// )};
+
 const DeclarationStore: string[] = [];
 
 //creat function to go through import statements and store in array, checking the Method Defenition 
@@ -67,54 +63,69 @@ const ImpDeclVisitor: {ImportDeclaration: (path: Path) => void} = {
         // console.log('value pulled from path.node.local is', value);
       }
     })
-    //look into specs first, for each look at 
-    //or traverse through identifiers like below and look for defenition
-    // console.log('DeclarationStore is' , DeclarationStore);
   }
 }
-    //context variable to store the context
-    //boolean indicating if 'provider' or 'consumer is present in the Declaration 
-    // const isProviderOrConsumer: boolean = false;
+   
 
 let contextToUse: any = null;
-
-const ReturnStatementVisitor: {JSXMemberExpression: (path: Path) => void} = {
+//contextCount is something we need during the process to build the const...useContext(context) statement.  
+let contextCount: number = 0;
+//ClassBody -> ClassMethod
+const UseContextDecl: {ClassDeclaration: (path: Path) => void} = {
     //if DeclareStore includes path.get...path.get('JSXIdentifier').t.identifier({name})  //do the conversion
-    
-  JSXMemberExpression(path: Path): void {
-    console.log('inside the classMethod traversal stage of this whole fuckin process')
+  ClassDeclaration(path: Path): void {
 
-    //this is the direct route to the left and right side of the JSX expression
-    //grab value at path.node.property.name
-    console.log('path.node.property.name is ---->', path.node.property.name);
-    console.log('path.node.object.name is ---->', path.node.object.name);
-    //might not be necessary to check the right side could juest check the left, it's just one more level of nesting
-    //if right side of expression is "consumer"{
-    if(path.node.property.name.toLowerCase() === 'consumer'){
-      console.group('match found')
-      // if DeclarationStore includes left side expession
-      if(DeclarationStore.includes(path.node.object.name)){
-        contextToUse = path.node.object.name;
-        console.log('context is found and contextToUse is', contextToUse);
-        // path.get('body').unshiftContainer('body',
-        //   t.expressionStatement(
-        //     t.variableDeclaration("const", 
-        //     [t.variableDeclarator(
-        //       t.identifier('imported'+`${contextToUse}`), 
-        //       t.assignmentExpression(t.identifier("useContext")),
-        //       t.callExpression(`${contextToUse}`)
-        //       )]
-        //     )
-        //   )
-        // )
+    //traverse...
+    path.traverse({
+      JSXMemberExpression(path: Path): void {
+        console.log('inside the classMethod traversal stage of this whole fuckin process')
+        
+        //this is the direct route to the left and right side of the JSX expression
+        //grab value at path.node.property.name
+        console.log('path.node.property.name is ---->', path.node.property.name);
+        console.log('path.node.object.name is ---->', path.node.object.name);
+        //might not be necessary to check the right side could juest check the left, it's just one more level of nesting
+        //if right side of expression is "consumer"{
+          if(path.node.property.name.toLowerCase() === 'consumer'){
+            console.group('match found');
+            // if DeclarationStore includes left side expession
+            if(DeclarationStore.includes(path.node.object.name)){
+              contextCount++;
+              contextToUse = path.node.object.name;
+              console.log('context is found and contextToUse is', contextToUse);
+            }
+          }
+          // if the contextToUse we pulled out is in DeclarationStore
+          // enter into component, in component insertBefore or insertAfter
+          // unshift container, push container
+        }  
+    })
+    console.log('contextCount is', contextCount);
+    let i: number = 0;
+    path.traverse({
+      
+      ClassMethod(path: Path): void {
+        console.log('inside the ClassMethod node')
+        console.log(path.node.type);
+        //while loop to break out of when we have inserted the appropriate amount of useContext statements with the imported Contexts that we have
+        //so we don't insert a useContext statement after EVERY classmethod.  
+        while(i < contextCount/2){
+          path.insertBefore(
+            // t.expressionStatement(
+            t.variableDeclaration("const", 
+            [t.variableDeclarator(
+              t.identifier('imported'+`${contextToUse}`), 
+              t.callExpression(t.identifier("useContext"),
+              [t.identifier(`${contextToUse}`)]
+              )
+              )]
+            )
+          )  
+          i++;
+        }
       }
-    }
-
-
-    // if the contextToUse we pulled out is in DeclarationStore
-    // enter into component, in component insertBefore or insertAfter
-    // unshift container, push container
-  }  
+    })          
+  }
 }
 
 
@@ -175,7 +186,7 @@ parserMethods.traverse(ast, {
     // path.traverse(ImpSpecVisitor);
     // path.traverse(ClassDeclarationVisitor);
     path.traverse(ImpDeclVisitor);
-    path.traverse(ReturnStatementVisitor);
+    path.traverse(UseContextDecl);
 
   }
 })
@@ -188,6 +199,7 @@ fs.writeFileSync('ast.jsx', updatedAST.code as string);
 
 
 export {}
+
 
 
 
