@@ -10,7 +10,6 @@ function parse(file: string): any {
   })
   return ast;
 }
-
 export {
   parse,
   traverse,

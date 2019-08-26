@@ -34,7 +34,7 @@ class App extends Component {
   }
   render() {
     return (
-      <NameContext.Provider value = {this.state.user}>
+      <NameContext.Provider value = {this.state.user[0]}>
         <div>
           Hello World
         </div>
