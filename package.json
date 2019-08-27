@@ -6,7 +6,7 @@
   "scripts": {
     "start": "nodemon server/main.ts",
     "build": "NODE_ENV=production webpack",
-    "dev": "NODE_ENV=development nodemon ./util/useEffect.ts",
+    "dev": "NODE_ENV=development nodemon util/useEffect.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -39,6 +39,7 @@
     "@babel/traverse": "^7.5.5",
     "@babel/types": "^7.5.5",
     "@types/node": "^12.7.2",
+    "babel-generator": "^6.26.1",
     "express": "^4.17.1",
     "react": "^16.9.0",
     "react-dom": "^16.9.0",

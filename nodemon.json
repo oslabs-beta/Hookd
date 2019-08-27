@@ -2,7 +2,8 @@
   "nodemonConfig": {
     "ignore": [
       "ast.jsx",
-      "node_modules"
+      "node_modules",
+      "test/*"
     ]
   }
 }

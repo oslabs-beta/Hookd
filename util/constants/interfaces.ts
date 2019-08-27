@@ -7,6 +7,11 @@ export interface Node {
   key: {name: string};
   arguments: any[];
   property: {name: string};
+  local: {name: string};
+  object: {name: string};
+  specifiers: {name: string};
+  superClass: {name: string};
+  operator:{body: any[]}
 }
 export interface Path {
   node: Node;
