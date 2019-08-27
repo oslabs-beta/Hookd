@@ -1,14 +1,14 @@
-
 // create functions in here and export in object
 import * as parserMethods from './parser';
 const { parse, traverse, t, generate } = parserMethods;
 import * as path from 'path';
 import * as fs from 'fs';
+
 // App is now a string with full definition
 const App: string = fs.readFileSync(path.resolve(__dirname as string, '../static/dummyData/app.jsx'), 'utf-8');
 // const App: string = require('../static/dummyData/app.jsx').toString();
 
-// // this logs the file's definition
+// this logs the file's definition
 // console.log(App);
 
 // the files gets parsed into an AST (Abstract Syntax Tree)
@@ -16,17 +16,17 @@ let ast: any = parse(App as string);
 
 // keeping global state for state to keep track of. can be placed in local scope to not have global var
 const classVisitor = {
-  ClassDeclaration(path: any){
+  ClassDeclaration(path: any): void{
     path.traverse({
       //traverses into all the Class Methods
-      ClassMethod(path: any){
+      ClassMethod(path: any): void{
         // look specifically for the constructor method, where all the state is held
         if(path.node.kind === 'constructor'){
           let state;
           // console.log('the path.node of ClassMethod: ', path.node)
           path.traverse({
             // since constructor exists, state or method bindings should exist(?)
-            AssignmentExpression(path: any){
+            AssignmentExpression(path: any): void{
               // console.log('in AssignmentExpression')
               if (t.isExpression(path.node, {operator: '='})) {
                 if(path.node.left.property.name === 'state') {
@@ -55,7 +55,7 @@ const classVisitor = {
 
 // visitor to look for Member Expressions and replace this.setState and this.state with equivalent hooks
 const memberExpVisitor: object = {
-  MemberExpression(path: any){
+  MemberExpression(path: any): void{
     if(path.node.property.name === 'setState'){
       // console.log(path.node.property.name)
       console.log(`yee i'm inside of member expression`)
@@ -63,6 +63,8 @@ const memberExpVisitor: object = {
     } else if (path.node.property.name === 'state' && t.isThisExpression(path.node.object)){
       console.log('gon change some state: ', path.node);
       stateToHooks(path.parentPath)
+    } else {
+      thisRemover(path);
     }
   }
 }
@@ -73,7 +75,7 @@ const memberExpVisitor: object = {
  * @param path the path to append siblings to before deletion
  * @param rightExpr the props array from ObjectExpression which contains the state
  */
-function makeUseStateNode(path: any, rightObjProps: any){
+function makeUseStateNode(path: any, rightObjProps: any): void {
   // the rightObjProps will be an array
   for (let i = 0; i < rightObjProps.length; i++){
     // declare the node itself to make it easier to work with
@@ -93,7 +95,6 @@ function makeUseStateNode(path: any, rightObjProps: any){
     // adds 'const [state, setState] = useState(initState);' as a sibling
     path.insertBefore(t.variableDeclaration('const', [varDecl]))
   }
-  // path.parentPath.remove();
 }
 
 /**
@@ -101,7 +102,7 @@ function makeUseStateNode(path: any, rightObjProps: any){
  * ALERT -- place function within member expression visitor
  * @param parentPath exactly what it says
  */
-function setStateToHooks(parentPath: any) {
+function setStateToHooks(parentPath: any): void {
   // this will be an array of arguments to make setState Call Arguments with
   const args = parentPath.node.arguments[0].properties
   const states = [];
@@ -123,9 +124,22 @@ function setStateToHooks(parentPath: any) {
  * 
  * @param parentPath path.parentPath. this. what it says.
  */
-  function stateToHooks (parentPath: any) {
+  function stateToHooks (parentPath: any): void {
     if (t.isMemberExpression(parentPath.parentPath.node)) parentPath.parentPath.node.object = parentPath.node.property;
 	  else parentPath.replaceWith(parentPath.node.property);
+  }
+
+  /**
+   * will DECIMATE all other this statements no matter what. Used within MemberExpression Visitor
+   * WARNING: will literally destroy any and all this statements
+   * @param path pass in the path of MemberExpression where
+   */
+  function thisRemover(path: any): void {
+    if (t.isThisExpression(path.node.object)){
+      if (t.isMemberExpression(path.node)) path.node.object = path.node.property;
+      if (t.isCallExpression(path.node)) path.node.callee = path.node.property;
+      else path.replaceWith(path.node.property);
+    }
   }
 
 /**
