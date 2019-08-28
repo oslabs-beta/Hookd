@@ -1,8 +1,8 @@
 // create functions here and export it in object
 import {parse,traverse,t,generate} from './parser';
-import {Path, stateDep} from './constants/interfaces';
-import {createUseEffect, createFunctionDefinitions, checkKeyIdentifier} from './helperfunctions';
-import * as names from './constants/names';
+import {Path, stateDep, handlers} from './constants/interfaces';
+import {createUseEffect, createFunctionDefinitions, checkKeyIdentifier, parseStateDep, checkIfHandler} from './helperfunctions';
+import * as n from './constants/names';
 const fs: any = require('fs');
 const path: any = require('path');
 
@@ -18,39 +18,32 @@ const ImpSpecVisitor: {ImportSpecifier: (path: Path)=> void} ={
       // console.log(path.node);
       // replace the current path (importSpecifier) with multiple new importSpcefiers
       path.replaceWithMultiple([
-        t.importSpecifier(t.identifier(names.US), t.identifier(names.US)),
-        t.importSpecifier(t.identifier(names.UE), t.identifier(names.UE)),
-        t.importSpecifier(t.identifier(names.UC), t.identifier(names.UC)),
+        t.importSpecifier(t.identifier(n.US), t.identifier(n.US)),
+        t.importSpecifier(t.identifier(n.UE), t.identifier(n.UE)),
+        t.importSpecifier(t.identifier(n.UC), t.identifier(n.UC)),
       ]);
     }
     // console.log(path.node);
   }
 }
-// const memberExpressionVisitor: {MemberExpression: (path: Path)=> void} = {
-//   MemberExpression(path: Path): void {
-//     if (path.get('setState').isIdentifier('setState')) {
-//       path.parentPath.arguments.forEach()
-//     }
-    
-//   }
-// }
 const classDeclarationVisitor: {ClassDeclaration: (path: Path) => void} = {
 ClassDeclaration(path: Path): void {
   // keep track of all handlerfunctions and create a visitor for function body
   // keep track of body ([])
-  const stateDependencies: stateDep = {};
   let body: any[] = [];
   // opts: lcm, returnFunction, stateToCheck []
   const opts: {lcm?: string, returnFunction?: any,stateToCheck?: any []} = {};
   // keep track of all methodNames that a piece of state is being references within the scope of that method
-  // call createUseEffect() here 
+  const handlers: handlers[] = [];
+  const stateDependencies: stateDep = {};
   path.traverse({
     ClassMethod(path: Path): void {
       let currMethodName = path.node.key.name;
-      const cdm = checkKeyIdentifier(names.CDM, path),
-      cdu = checkKeyIdentifier(names.CDU, path),
-      cwu = checkKeyIdentifier(names.CWU, path),
-      render = checkKeyIdentifier(names.R, path);
+      const cdm = checkKeyIdentifier(n.CDM, path),
+      cdu = checkKeyIdentifier(n.CDU, path),
+      cwu = checkKeyIdentifier(n.CWU, path),
+      render = checkKeyIdentifier(n.R, path),
+      constructor = checkKeyIdentifier(n.C, path);
       // traverse through all expression statements and function declarations within a classMethod
       path.traverse({
         ExpressionStatement(path: Path): void {
@@ -59,70 +52,53 @@ ClassDeclaration(path: Path): void {
             MemberExpression(path: Path): void {
               const stateName: string = path.parentPath.node.property ? path.parentPath.node.property.name : null;
               if (t.isIdentifier(path.node.property, {name: 'state'}) && stateName) {
-                const stateNameObj = {
-                  [currMethodName]: {
-                    expressionStatement: {
-                      node: expressionStatement
-                    }
-                  }
-                };
-                const methodNameObj =  {
-                  expressionStatement: {
-                    node: expressionStatement
-                  }
+                let lcmsArr;
+                const lcmsObj = {name: currMethodName, expressionStatement: {node: expressionStatement, setsState: false}};
+                let isHandler = checkIfHandler(currMethodName);
+                // if the currMethodName is not a handler then create the lcmsObject
+                // console.log('is handler: ', isHandler, ' current method name: ', currMethodName);
+                // console.log('lcmsObj: ', lcmsObj)
+                if (!isHandler) lcmsArr = [lcmsObj]
+                // if the state property is defined then we can update the individual properties
+                if(stateDependencies[stateName]) {
+                  // console.log('stateDeps: ', stateDependencies);
+                  // if lcmsArr exists then we know the current method is not a handler
+                  // if there is already an lcms array then we push the new lcmsObj onto it
+                  if (lcmsArr && stateDependencies[stateName].lcms) stateDependencies[stateName].lcms.push(lcmsObj)
+                  // if there stateDep obj doesn't have a lcmsArr then instantiate it
+                  else if(lcmsArr) stateDependencies[stateName].lcms= lcmsArr;
+                  // 
+                  else stateDependencies[stateName].handlers = handlers;
                 }
-                if (stateDependencies.hasOwnProperty(stateName))
-                  if (stateDependencies[stateName].hasOwnProperty(currMethodName)) stateDependencies[stateName][currMethodName].expressionStatement.node = expressionStatement;
-                  else {
-                    stateDependencies[stateName][currMethodName] = methodNameObj;
-                  }
+                // if the state property is not defined yet, we need to initialize it
                 else {
-                    stateDependencies[stateName] = stateNameObj;
-               } 
-                // console.log('statename: ', stateDependencies)
+                  // if lcmsObj is defined then set the lcms property to the lcms Obj
+                  // console.log('lcmsArr:', lcmsArr);
+                  if (!isHandler) stateDependencies[stateName] = {lcms: lcmsArr};
+                  // if lcmsObj is undefined then we are in a handler, not a lcm
+                  else stateDependencies[stateName] = {handlers}; 
+                }
                 }
               }
           })
         }
       })
-      // find all functionDeclarations that relate to a piece of state
-      // work on this once Expression Statement without the scope of Function Declaration works
-      // path.traverse({
-      //   FunctionDeclaration(path: Path):void {
-      //     path.traverse({
-      //       ExpressionStatement(path: Path): void {
-      //         const expressionStatement: any = path.node;
-      //         path.traverse({
-      //           MemberExpression(path: Path): void {
-      //             const stateName: string|null = path.parentPath.node.property ? path.parentPath.node.property.name : null;
-      //             if (t.isIdentifier(path.node.property, {name: 'state'}) && stateName) {
-      //                 stateDependencies[stateName] = {
-      //                   stateName, 
-      //                   methodNames: [currMethodName], 
-      //                   nodes: expressionStatement};
-      //               }
-      //             }
-      //         })
-      //       }
-      //     })
-      //     // console.log('statename: ', stateDependencies)
-
-      //   }
-      // })
-      if (!cdm && !cdu && !cwu && !render) {
+      if (!cdm && !cdu && !cwu && !render && !constructor) {
         let name: string = path.node.key.name ? path.node.key.name : '';
         let paramNames: any[] = path.node.params;
         let body: any[] = path.node.body.body;
-        path.replaceWith(createFunctionDefinitions(name, paramNames, body))
+        // console.log(path.node);
+        path.replaceWith(createFunctionDefinitions(name, paramNames, body));
+        handlers.push({node: path.node, name, setsState: false});
       }
       if(cdm) {
         body = body.concat(path.node.body.body);
-        opts.lcm = names.CDM;
-        // console.log('in CDM')
+        opts.lcm = n.CDM;
+        console.log('in CDM')
         path.remove();
       }
       if(cdu) {
-        opts.lcm = names.CDU;
+        opts.lcm = n.CDU;
         body = body.concat(path.node.body.body);
         // console.log('in componentDidUpdate')
         path.remove();
@@ -130,8 +106,8 @@ ClassDeclaration(path: Path): void {
       }
       if(cwu) {
         opts.returnFunction = path.node.body.body;
-        opts.lcm = names.CWU;
-        // console.log('in componentWillUnmount');
+        opts.lcm = n.CWU;
+        console.log('in componentWillUnmount');
         path.remove();
       }
       if(render) {
@@ -140,7 +116,10 @@ ClassDeclaration(path: Path): void {
    }
   })
   // need to change position of useEffect so it's after state declarations
-  path.get('body').unshiftContainer('body', createUseEffect(body, opts))
+  parseStateDep(stateDependencies).forEach(UE => {
+    path.get('body').unshiftContainer('body', UE);
+  })
+    
 }
 
 }
