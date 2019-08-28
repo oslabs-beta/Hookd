@@ -5,6 +5,7 @@ import { ENETRESET } from 'constants';
 const {parse,traverse,t,generate} = parserMethods;
 const fs: any = require('fs');
 const path: any = require('path');
+import {Node, Path} from './constants'
 
 const file: string = fs.readFileSync(path.resolve((__dirname as string), '../static/dummyData/app.jsx')).toString();
 // console.log(file);
