@@ -1,3 +1,4 @@
+
 export interface Node {
   type: string;
   name: string;
@@ -35,17 +36,19 @@ export interface expressionStatement {
 };
 export interface functionDeclaration {
   node: Node;
-  name: string;
   setsState?: boolean;
 }
-type stateProps = 
-{[lcm: string]: {
+export interface handlers {
+  name?: string;
+  node?: any; 
+  setsState?: boolean; 
+}
+export interface lcms {
+  name: string;
   expressionStatement?: expressionStatement;
   functionDeclaration?: functionDeclaration;
-}} 
-& {expressionStatement?: expressionStatement}
-& {functionDeclaration?: functionDeclaration}
-
+}
+type stateProps = {lcms?: lcms[], handlers?: handlers[]}
 export interface stateDep {
       [state: string]: stateProps;
 }
