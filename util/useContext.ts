@@ -18,12 +18,17 @@ interface Node {
   name: string;
   Identifier: any;
   body: {body: any []};
+  program: {program: any};
   local: {name: string};
   object: {name: string};
   specifiers: {name: string};
   property: {name: string};
   superClass: {name: string};
-  operator:{body: any[]}
+  operator: {body: any[]};
+  declaration: any;
+  params: {params: any []};
+  arguments: {arguments: any []};
+  key: {key: any []}
 }
 
 interface Path {
@@ -35,7 +40,9 @@ interface Path {
   isImportSpecifier: () => any;
   get: (type: string) => any;
   insertAfter: (newNode: any) => any;
-  insertBefore: (newNode: any) => any
+  insertBefore: (newNode: any) => any;
+  isIdentifier:(type: boolean) => false;
+  remove: () => void;
 }
 
 
@@ -66,8 +73,15 @@ const ImpDeclVisitor: {ImportDeclaration: (path: Path) => void} = {
   }
 }
    
+//why doesn't this one work????
+const ProgramVisitor:  {Program: (path: Path) => void} = {
+  Program(path: Path): void {
+    console.log('we are at the program level')
+  }
+}
 
-let contextToUse: any = null;
+
+let contextToUse: string = '';
 //contextCount is something we need during the process to build the const...useContext(context) statement.  
 let contextCount: number = 0;
 //ClassBody -> ClassMethod
@@ -78,21 +92,21 @@ const UseContextDecl: {ClassDeclaration: (path: Path) => void} = {
     //traverse...
     path.traverse({
       JSXMemberExpression(path: Path): void {
-        console.log('inside the classMethod traversal stage of this whole fuckin process')
+        // console.log('inside the classMethod traversal stage of this whole fuckin process')
         
         //this is the direct route to the left and right side of the JSX expression
         //grab value at path.node.property.name
-        console.log('path.node.property.name is ---->', path.node.property.name);
-        console.log('path.node.object.name is ---->', path.node.object.name);
+        // console.log('path.node.property.name is ---->', path.node.property.name);
+        // console.log('path.node.object.name is ---->', path.node.object.name);
         //might not be necessary to check the right side could juest check the left, it's just one more level of nesting
         //if right side of expression is "consumer"{
           if(path.node.property.name.toLowerCase() === 'consumer'){
-            console.group('match found');
+            // console.group('match found');
             // if DeclarationStore includes left side expession
             if(DeclarationStore.includes(path.node.object.name)){
               contextCount++;
               contextToUse = path.node.object.name;
-              console.log('context is found and contextToUse is', contextToUse);
+              // console.log('context is found and contextToUse is', contextToUse);
             }
           }
           // if the contextToUse we pulled out is in DeclarationStore
@@ -100,13 +114,13 @@ const UseContextDecl: {ClassDeclaration: (path: Path) => void} = {
           // unshift container, push container
         }  
     })
-    console.log('contextCount is', contextCount);
+    // console.log('contextCount is', contextCount);
     let i: number = 0;
     path.traverse({
       
       ClassMethod(path: Path): void {
-        console.log('inside the ClassMethod node')
-        console.log(path.node.type);
+        // console.log('inside the ClassMethod node')
+        // console.log(path.node.type);
         //while loop to break out of when we have inserted the appropriate amount of useContext statements with the imported Contexts that we have
         //so we don't insert a useContext statement after EVERY classmethod.  
         while(i < contextCount/2){
@@ -131,10 +145,11 @@ const UseContextDecl: {ClassDeclaration: (path: Path) => void} = {
 
 ​
 
-const ImpSpecVisitor: {ImportSpecifier: (path: Path) => void} ={
+const ImpSpecVisitor: {ImportSpecifier: (path: Path) => void} = {
   // method for traversing through all the ImportSpecifiers
   ImportSpecifier(path: Path): void {
     // check to see if the property 'imported' is an identifier with the name 'Component'
+    // console.log('inside the import specifier visitor function')
     if (path.get('imported').isIdentifier({name: 'Component'})) {
       // console.log(path.node);
       // replace the current path (importSpecifier) with multiple new importSpcefiers
@@ -148,31 +163,67 @@ const ImpSpecVisitor: {ImportSpecifier: (path: Path) => void} ={
   }
 }
 
+let componentName: string = '';
+
+//function to visit export statement and grab componentName to store in 
+const ExportStatementVisitor: {ExportDefaultDeclaration: (path: Path) => void} = {
+  ExportDefaultDeclaration(path: Path): void {
+    // console.log('inside the Export Declaration');
+    // console.log('path.node is', path.node.declaration.name)
+    componentName = path.node.declaration.name;
+    // console.log('componentName is', componentName);
+  }
+}
 
 
-const ClassDeclarationVisitor: {ClassDeclaration: (path: Path) => void} = {
+const ClassToFuncVisitor: {ClassDeclaration: (path: Path) => void} = {
+  //write the program path method, look at import statent and store componenet name in a variable
   ClassDeclaration(path: Path): void {
+    console.log('inside the Class Declaration Function')
     const hasProps: boolean = false;
+    let possibleProps: string = '';
+    console.log('-----------------------------------------')
+    path.traverse({
+      ClassMethod(path: Path): void {
+        if(path.get('key').isIdentifier({name: "constructor"})){
+          console.log('within the class method traversal and key -> constructor is found')
+          possibleProps = path.get('params')[0].node.name;
+          //grab the value at params[0].name\
+          console.log('possibleProps is', possibleProps)
+        }
+      }
+    })        
+    let blockStatement: any = null;
+    if(path.get('id').isIdentifier({ name: `${componentName}`})){
+      console.log('we have ourselves a function!!!')
+      blockStatement = path.node.body.body;
+      console.log('possible blockStatement is', blockStatement)
+      // const blockStatement = path.node.body.body;
+      // console.log('blockStatement is ', blockStatement)
 
-      //traverse to constructor(props) to see if props exist, if so flip the hasProps boolean to true
-    if(path.get('params').isIdentifier({name: "props"})) { !hasProps };
-    
-    if(path.get('id').isIdentifier({ name: "App"})){
-      const blockStatement = path.node.body.body;
+
       // console.log('blockStatement is', blockStatement)
-      const props: any [] = hasProps ? [t.identifier("props")] : [];
+      // const props: any [] = hasProps ? [t.identifier("props")] : [];
+      path.traverse({
+        ClassMethod(path: Path): void {
+          // path.remove();
+        }
+      })       
+
       
       path.replaceWith(
         t.variableDeclaration("const", 
         [t.variableDeclarator(
-          t.identifier("App"), 
-          t.arrowFunctionExpression(props, t.blockStatement(blockStatement) ) 
+          t.identifier(`${componentName}`), 
+          t.arrowFunctionExpression(possibleProps, t.blockStatement(blockStatement)) 
           )
         ])
       )
-    }  
+    }
   }
 }
+  
+
 
 
 
@@ -183,11 +234,17 @@ parserMethods.traverse(ast, {
   // specify an entry method to traverse downward
   enter(path: any) {
     // traverse through our visitor that we defined above
+    path.traverse(ProgramVisitor);
+    path.traverse(ExportStatementVisitor);
     path.traverse(ImpSpecVisitor);
-    // path.traverse(ClassDeclarationVisitor);
+    // console.log('impspec');
+    path.traverse(ClassToFuncVisitor);
+    // console.log('ClassToFuncVisitor');
     path.traverse(ImpDeclVisitor);
+    // console.log('ImpDeclVisitor');
     path.traverse(UseContextDecl);
-
+    // console.log('UseContextDecl');
+    
   }
 })
 // console.log(parserMethods.generate);
@@ -203,5 +260,31 @@ export {}
 
 
 
+//old func
+// const ClassToFuncVisitor: {ClassDeclaration: (path: Path) => void} = {
+//   ClassDeclaration(path: Path): void {
+//     const hasProps: boolean = false;
+
+//       //traverse to constructor(props) to see if props exist, if so flip the hasProps boolean to true
+//     if(path.get('params').isIdentifier({name: "props"})) { !hasProps };
+//     console.log('hasProps boolean should be true and right now it is', hasProps);
+    
+//     if(path.get('id').isIdentifier({ name: "App"})){
+//       const blockStatement = path.node.body.body;
+//       console.log('blockStatement is', blockStatement);
+//       // console.log('blockStatement is', blockStatement)
+//       const props: any [] = hasProps ? [t.identifier("props")] : [];
+      
+//       // path.replaceWith(
+//       //   t.variableDeclaration("const", 
+//       //   [t.variableDeclarator(
+//       //     t.identifier("App"), 
+//       //     t.arrowFunctionExpression(props, t.blockStatement(blockStatement) ) 
+//       //     )
+//       //   ])
+//       // )
+//     }  
+//   }
+// }
 
 
