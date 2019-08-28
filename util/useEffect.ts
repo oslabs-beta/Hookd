@@ -8,7 +8,7 @@ const path: any = require('path');
 
 
 const file: string = fs.readFileSync(path.resolve((__dirname as string), '../static/dummyData/app.jsx')).toString();
-console.log(file);
+// console.log(file);
 const ast: object = parse(file); 
 const ImpSpecVisitor: {ImportSpecifier: (path: Path)=> void} ={
   // method for traversing through all the ImportSpecifiers
@@ -100,7 +100,7 @@ ClassDeclaration(path: Path): void {
       if(cdu) {
         opts.lcm = n.CDU;
         body = body.concat(path.node.body.body);
-        console.log('in componentDidUpdate')
+        // console.log('in componentDidUpdate')
         path.remove();
         //check for state here
       }
