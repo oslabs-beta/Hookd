@@ -48,12 +48,12 @@ interface Path {
 
 const DeclarationStore: string[] = [];
 
-//creat function to go through import statements and store in array, checking the Method Defenition 
+//create function to go through import statements and store in array, checking the Method Defenition 
 const ImpDeclVisitor: {ImportDeclaration: (path: Path) => void} = { 
   ImportDeclaration(path: Path): void {
     // console.log('ImportDeclaration path is', path.node)
     // console.log('Pre-traversal, DeclarationStore is' , DeclarationStore);
-
+    // console.log('inside the import declaration, pushing those values into DeclStoreArray to check against the context consumers')
     //go through import statements storing in DeclStore each identifier name['React','Component, UserWrapper, NameContext]
 
     // console.log('path.node is ', path.node);
@@ -64,6 +64,7 @@ const ImpDeclVisitor: {ImportDeclaration: (path: Path) => void} = {
         // let array = path.node.local;
         // let value = path.node.local.name;
         DeclarationStore.push(path.node.local.name);
+        // console.log("DeclarationStore is", DeclarationStore )
         // console.log('is path.node.local an array?:', Array.isArray(path.node.local));
         // console.log('path.node.local looks like this:', path.node.local);
         // console.log('array looks like this', array);
@@ -74,11 +75,11 @@ const ImpDeclVisitor: {ImportDeclaration: (path: Path) => void} = {
 }
    
 //why doesn't this one work????
-const ProgramVisitor:  {Program: (path: Path) => void} = {
-  Program(path: Path): void {
-    console.log('we are at the program level')
-  }
-}
+// const ProgramVisitor:  {Program: (path: Path) => void} = {
+//   Program(path: Path): void {
+//     console.log('we are at the program level')
+//   }
+// }
 
 
 let contextToUse: string = '';
@@ -88,16 +89,12 @@ let contextCount: number = 0;
 const UseContextDecl: {ClassDeclaration: (path: Path) => void} = {
     //if DeclareStore includes path.get...path.get('JSXIdentifier').t.identifier({name})  //do the conversion
   ClassDeclaration(path: Path): void {
-
+    // console.log('inside the use Context Declaration Builder Function')
     //traverse...
     path.traverse({
       JSXMemberExpression(path: Path): void {
-        // console.log('inside the classMethod traversal stage of this whole fuckin process')
+        // console.log('inside the classMethod traversal stage')
         
-        //this is the direct route to the left and right side of the JSX expression
-        //grab value at path.node.property.name
-        // console.log('path.node.property.name is ---->', path.node.property.name);
-        // console.log('path.node.object.name is ---->', path.node.object.name);
         //might not be necessary to check the right side could juest check the left, it's just one more level of nesting
         //if right side of expression is "consumer"{
           if(path.node.property.name.toLowerCase() === 'consumer'){
@@ -117,7 +114,6 @@ const UseContextDecl: {ClassDeclaration: (path: Path) => void} = {
     // console.log('contextCount is', contextCount);
     let i: number = 0;
     path.traverse({
-      
       ClassMethod(path: Path): void {
         // console.log('inside the ClassMethod node')
         // console.log(path.node.type);
@@ -125,7 +121,7 @@ const UseContextDecl: {ClassDeclaration: (path: Path) => void} = {
         //so we don't insert a useContext statement after EVERY classmethod.  
         while(i < contextCount/2){
           path.insertBefore(
-            // t.expressionStatement(
+
             t.variableDeclaration("const", 
             [t.variableDeclarator(
               t.identifier('imported'+`${contextToUse}`), 
@@ -177,7 +173,7 @@ const ExportStatementVisitor: {ExportDefaultDeclaration: (path: Path) => void} =
 
 
 const ClassToFuncVisitor: {ClassDeclaration: (path: Path) => void} = {
-  //write the program path method, look at import statent and store componenet name in a variable
+  //write the program path method, 
   ClassDeclaration(path: Path): void {
     console.log('inside the Class Declaration Function')
     const hasProps: boolean = false;
@@ -195,9 +191,9 @@ const ClassToFuncVisitor: {ClassDeclaration: (path: Path) => void} = {
     })        
     let blockStatement: any = null;
     if(path.get('id').isIdentifier({ name: `${componentName}`})){
-      console.log('we have ourselves a function!!!')
+      // console.log('we have ourselves a function!!!')
       blockStatement = path.node.body.body;
-      console.log('possible blockStatement is', blockStatement)
+      // console.log('possible blockStatement is', blockStatement)
       // const blockStatement = path.node.body.body;
       // console.log('blockStatement is ', blockStatement)
 
@@ -234,17 +230,16 @@ parserMethods.traverse(ast, {
   // specify an entry method to traverse downward
   enter(path: any) {
     // traverse through our visitor that we defined above
-    path.traverse(ProgramVisitor);
-    path.traverse(ExportStatementVisitor);
+    // vist the imprt statement, take out component and insert hooks
     path.traverse(ImpSpecVisitor);
-    // console.log('impspec');
-    path.traverse(ClassToFuncVisitor);
-    // console.log('ClassToFuncVisitor');
+    //export statement visitor looks for the component name, in this case "App", and store 
+    path.traverse(ExportStatementVisitor);
+    //visit the import Declaration and push import components into an array to check during the useContextDeclaration in the next traversal
     path.traverse(ImpDeclVisitor);
-    // console.log('ImpDeclVisitor');
+    //build the use context statement out of the 
     path.traverse(UseContextDecl);
-    // console.log('UseContextDecl');
-    
+    // path.traverse(ClassToFuncVisitor);
+
   }
 })
 // console.log(parserMethods.generate);

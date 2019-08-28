@@ -8,7 +8,7 @@ const path: any = require('path');
 
 
 const file: string = fs.readFileSync(path.resolve((__dirname as string), '../static/dummyData/app.jsx')).toString();
-console.log(file);
+// console.log(file);
 const ast: object = parse(file); 
 const ImpSpecVisitor: {ImportSpecifier: (path: Path)=> void} ={
   // method for traversing through all the ImportSpecifiers
@@ -79,7 +79,7 @@ ClassDeclaration(path: Path): void {
                 else {
                     stateDependencies[stateName] = stateNameObj;
                } 
-                console.log('statename: ', stateDependencies)
+                // console.log('statename: ', stateDependencies)
                 }
               }
           })
@@ -118,20 +118,20 @@ ClassDeclaration(path: Path): void {
       if(cdm) {
         body = body.concat(path.node.body.body);
         opts.lcm = names.CDM;
-        console.log('in CDM')
+        // console.log('in CDM')
         path.remove();
       }
       if(cdu) {
         opts.lcm = names.CDU;
         body = body.concat(path.node.body.body);
-        console.log('in componentDidUpdate')
+        // console.log('in componentDidUpdate')
         path.remove();
         //check for state here
       }
       if(cwu) {
         opts.returnFunction = path.node.body.body;
         opts.lcm = names.CWU;
-        console.log('in componentWillUnmount');
+        // console.log('in componentWillUnmount');
         path.remove();
       }
       if(render) {
@@ -141,7 +141,6 @@ ClassDeclaration(path: Path): void {
   })
   // need to change position of useEffect so it's after state declarations
   path.get('body').unshiftContainer('body', createUseEffect(body, opts))
-
 }
 
 }
