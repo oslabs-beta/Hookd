@@ -201,15 +201,20 @@ ClassDeclaration(path: Path): void {
           path.traverse({
             ArrowFunctionExpression(path: Path): void{
               // console.log('\\\\path.node is', path.node)
-              path.parentPath.replaceWith(
-                  t.jsxElement(
-                    t.jsxOpeningElement((t.jsxIdentifier('div')),[],false),
-                    t.jsxClosingElement(t.jsxIdentifier('div')),
-                    [t.jsxExpressionContainer(
-                      t.identifier(`${importedContext}`)
-                    )],
-                    false
-                  )
+              // path.parentPath.replaceWith(
+              //     t.jsxElement(
+              //       t.jsxOpeningElement((t.jsxIdentifier('div')),[],false),
+              //       t.jsxClosingElement(t.jsxIdentifier('div')),
+              //       [t.jsxExpressionContainer(
+              //         t.identifier(`${importedContext}`)
+              //       )],
+              //       false
+              //     )
+              // )
+              path.replaceWith(
+                t.ExpressionStatement(
+                  t.identifier(`${importedContext}`)
+                )
               )
             }
           })
