@@ -2,7 +2,6 @@
   "name": "hookd",
   "version": "1.0.0",
   "description": "a cli tool to convert React class components to hooks",
-  "main": "index.js",
   "scripts": {
     "build": "NODE_ENV=production webpack",
     "dev": "NODE_ENV=development nodemon index.ts",
@@ -39,9 +38,6 @@
     "@babel/types": "^7.5.5",
     "@types/node": "^12.7.2",
     "babel-generator": "^6.26.1",
-    "express": "^4.17.1",
-    "react": "^16.9.0",
-    "react-dom": "^16.9.0",
     "webpack": "^4.39.2"
   }
 }

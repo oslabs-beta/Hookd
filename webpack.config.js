@@ -6,10 +6,8 @@ module.exports= {
     path: path.resolve(__dirname),
     filename: 'index.js'
   },
+  target: 'node',
   mode: process.env.NODE_ENV,
-  devServer: {
-    publicPath: '/build'
-  },
   resolve: {
     modules: [path.join(__dirname, './node_modules')],
     extensions: ['.ts', '.tsx', '.js', '.jsx']
@@ -26,6 +24,7 @@ module.exports= {
       {
         enforce: 'pre',
         test: /\.jsx?/,
+        exclude: /node_modules/,
         use: {
           loader: 'babel-loader',
           options: {

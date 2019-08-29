@@ -7,7 +7,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 
-const file: string = fs.readFileSync(path.resolve((__dirname as string), './static/dummyData/App.jsx'), 'utf-8').toString();
+const file: string = fs.readFileSync(path.join((__dirname as string), './static/dummyData/App.jsx'), 'utf-8').toString();
 const ast: object = parse(file); 
 const DeclarationStore: string[] = [];
 
@@ -215,5 +215,5 @@ traverse(ast, {
   }
 })
 const newCode: string = generate(ast).code;
-fs.writeFileSync('./static/dummyData/newFile.jsx', newCode as string)
+fs.writeFileSync(path.join(__dirname, './static/dummyData/newFile.jsx'), newCode as string)
 export {}
