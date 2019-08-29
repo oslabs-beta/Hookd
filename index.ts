@@ -1,4 +1,5 @@
 // create functions here and export it in object
+
 import {parse,traverse,t,generate} from './util/parser';
 import {Path, stateDep, handlers} from './util/constants/interfaces';
 import {createFunctionDefinitions, checkKeyIdentifier, parseStateDep, checkIfHandler, makeUseStateNode, setStateToHooks, stateToHooks, thisRemover} from './util/helperfunctions';
@@ -7,7 +8,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 
-const file: string = fs.readFileSync(path.join((__dirname as string), './static/dummyData/App.jsx'), 'utf-8').toString();
+const file: string = fs.readFileSync(path.resolve((__dirname as string), process.argv[2]), 'utf-8').toString();
 const ast: object = parse(file); 
 const DeclarationStore: string[] = [];
 
