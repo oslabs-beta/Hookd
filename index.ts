@@ -1,4 +1,5 @@
 // create functions here and export it in object
+
 import {parse,traverse,t,generate} from './util/parser';
 import {Path, stateDep, handlers} from './util/constants/interfaces';
 import {createFunctionDefinitions, checkKeyIdentifier, parseStateDep, checkIfHandler, makeUseStateNode, setStateToHooks, stateToHooks, thisRemover} from './util/helperfunctions';
@@ -7,7 +8,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 
-const file: string = fs.readFileSync(path.join((__dirname as string), './static/dummyData/App.jsx'), 'utf-8').toString();
+const file: string = fs.readFileSync(path.resolve((__dirname as string), process.argv[2]), 'utf-8').toString();
 const ast: object = parse(file); 
 const DeclarationStore: string[] = [];
 
@@ -173,19 +174,55 @@ ClassDeclaration(path: Path): void {
   // makeUseStateNode(path as any, state as any);
   makeUseStateNode(useStateData[0] as any, useStateData[1] as any).forEach(stateNode => path.get('body').unshiftContainer('body', stateNode))
   path.traverse({
-    JSXMemberExpression(path: Path): void {
-        //if right side of expression is "consumer", grab the value on the left side of the dot to constuct the useContext statement
-      if(path.node.property.name.toLowerCase() === 'consumer'){
-        // console.group('match found');
-        // if DeclarationStore includes left side expession
-        if(DeclarationStore.includes(path.node.object.name)){
-          contextToUse = path.node.object.name;
-          console.log(contextToUse);
-          // console.log('context is found and contextToUse is', contextToUse);
+    JSXElement(path: Path): void {
+      path.traverse({
+        JSXMemberExpression(path: Path): void {
+            //if right side of expression is "consumer", grab the value on the left side of the dot to constuct the useContext statement
+          if(path.node.property.name.toLowerCase() === 'consumer'){
+            // console.group('match found');
+            // if DeclarationStore includes left side expession
+            if(DeclarationStore.includes(path.node.object.name)){
+              contextToUse = path.node.object.name;
+              console.log(contextToUse);
+              // console.log('context is found and contextToUse is', contextToUse);
+            }
+          }
+          if(path.node.object.name === contextToUse){
+            // console.log ('found a match!!')
+            path.replaceWith(
+              t.jSXMemberExpression(t.jSXIdentifier('React'), t.jSXIdentifier('Fragment'))
+            )
+          }
         }
-      }
-    }  
+      })
+      path.traverse({
+        JSXExpressionContainer(path: Path): void {
+          let importedContext: string = 'imported' + contextToUse;
+          path.traverse({
+            ArrowFunctionExpression(path: Path): void{
+              // console.log('\\\\path.node is', path.node)
+              // path.parentPath.replaceWith(
+              //     t.jsxElement(
+              //       t.jsxOpeningElement((t.jsxIdentifier('div')),[],false),
+              //       t.jsxClosingElement(t.jsxIdentifier('div')),
+              //       [t.jsxExpressionContainer(
+              //         t.identifier(`${importedContext}`)
+              //       )],
+              //       false
+              //     )
+              // )
+              path.replaceWith(
+                t.ExpressionStatement(
+                  t.identifier(`${importedContext}`)
+                )
+              )
+            }
+          })
+        }
+      })
+    }
   })
+ 
   path.traverse(memberExpVisitor);
   path.get('body').unshiftContainer('body',
     t.variableDeclaration("const", 
