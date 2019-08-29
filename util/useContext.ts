@@ -1,47 +1,44 @@
 import * as parserMethods from './parser';
-import { PassThrough } from 'stream';
-import { type } from 'os';
-import { ENETRESET } from 'constants';
 const {parse,traverse,t,generate} = parserMethods;
 const fs: any = require('fs');
-const path: any = require('path');
-import {Node, Path} from './constants'
+const path: any = require('path')
+import {Node, Path} from './constants/interfaces';
 
 const file: string = fs.readFileSync(path.resolve((__dirname as string), '../static/dummyData/app.jsx')).toString();
 
 const ast: object = parserMethods.parse(file); 
 
-interface Node {
-  type: string;
-  name: string;
-  Identifier: any;
-  body: {body: any []};
-  program: {program: any};
-  local: {name: string};
-  object: {name: string};
-  specifiers: {name: string};
-  property: {name: string};
-  superClass: {name: string};
-  operator: {body: any[]};
-  declaration: any;
-  params: {params: any []};
-  arguments: {arguments: any []};
-  key: {key: any []}
-}
+// interface Node {
+//   type: string;
+//   name: string;
+//   Identifier: any;
+//   body: {body: any []};
+//   program: {program: any};
+//   local: {name: string};
+//   object: {name: string};
+//   specifiers: {name: string};
+//   property: {name: string};
+//   superClass: {name: string};
+//   operator: {body: any[]};
+//   declaration: any;
+//   params: {params: any []};
+//   arguments: {arguments: any []};
+//   key: {key: any []}
+// }
 
-interface Path {
-  node: Node;
-  traverse: ({}) => any;
-  replaceWithMultiple: ([]:any) => any;
-  replaceWith: (newNode: any) => any;
-  findParent: (callback: (path: Path) => any) => any;
-  isImportSpecifier: () => any;
-  get: (type: string) => any;
-  insertAfter: (newNode: any) => any;
-  insertBefore: (newNode: any) => any;
-  isIdentifier:(type: boolean) => false;
-  remove: () => void;
-}
+// interface Path {
+//   node: Node;
+//   traverse: ({}) => any;
+//   replaceWithMultiple: ([]:any) => any;
+//   replaceWith: (newNode: any) => any;
+//   findParent: (callback: (path: Path) => any) => any;
+//   isImportSpecifier: () => any;
+//   get: (type: string) => any;
+//   insertAfter: (newNode: any) => any;
+//   insertBefore: (newNode: any) => any;
+//   isIdentifier:(type: boolean) => false;
+//   remove: () => void;
+// }
 
 
 const DeclarationStore: string[] = [];
@@ -157,7 +154,7 @@ const ClassToFuncVisitor: {ClassDeclaration: (path: Path) => void} = {
   //write the program path method, 
   ClassDeclaration(path: Path): void {
     console.log('inside the Class Declaration Function')
-    const hasProps: boolean = false;
+    // const hasProps: boolean = false;
     let possibleProps: string = '';
     console.log('-----------------------------------------')
     path.traverse({

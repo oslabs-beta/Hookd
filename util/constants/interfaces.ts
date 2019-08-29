@@ -13,10 +13,14 @@ export interface Node {
   specifiers: {name: string};
   superClass: {name: string};
   operator:{body: any[]}
+  program: {program: any};
+  declaration: any;
 }
 export interface Path {
   node: Node;
   traverse: ({}) => any;
+  stop: () => void;
+  skip: () => void;
   replaceWithMultiple: ([]:any) => any;
   replaceWith: (newNode: any) => any;
   findParent: (callback: (path: Path) => any) => any;
@@ -28,6 +32,8 @@ export interface Path {
   insertBefore: (node: any) => any;
   insertAfter: (node: any) => any;
   remove: () => void;
+  unshiftContainer: (newNode: Node) => void;
+  isIdentifier:(type: boolean) => false;
 }
 export interface expressionStatement {
   node: Node;

@@ -115,42 +115,83 @@ export function parseStateDep(stateDep: stateDep) {
   })
   return useEffectArr;
 }
-        // Object.values(stateDep[state]).forEach(lcm => {
-        //   const setsState: boolean = stateDep[state][lcm].expressionStatement.setsState 
-        //   // UNCOMMENT WHEN FUNCTION DECLARATIONS ARE ACCOUNTED FOR
-        //   // || stateDep[state][lcm].functionDeclaration.setsState;
-        //   const nodesArr: any[] = [stateDep[state][lcm].expressionStatement.node]
-        //   // UNCOMMENT WHEN FUNCTION DECLARATIONS ARE ACCOUNTED FOR
-        //   // .concat([stateDep[state][lcm].functionDeclaration.node]);
-        //   if (checkIfHandler(lcm)) {
-        //     // lcm is some method not related to the regular lcms
-        //     // push into an array of handlers
-        //     // push name and node
-        //     handlers.push(stateDep[state][lcm])
-        //     // check if handler is referenced within a given lcm
-        //     console.log(handlers);
-        //   }
-        //   switch(lcm) {
-        //     case(n.CDM):
-        //     // check how OFTEN the state changes 
-        //     // (if state changes only once then we should have an empty depArr)
-        //       if (!setsState) {
-        //         body = body.concat(nodesArr);
-        //       }
-        //       else {
-        //         body = body.concat(nodesArr);
-        //       }
-        //     case(n.CDU):
-        //     // if some state is referenced in CDU then that should be paying attention to changes in that state
-        //     // depArr should contain that state
-        //       if (setsState) {
-        //         depArr.push(state);
-        //       }
-        //     case(n.CWU):
-        //       // if state is referenced in CWU then there is some cleanup involved with it
-        //       returnStatement = returnStatement.concat(nodesArr);
-        //     default:
-        //       // default statement captures all the handlers referencing that state
-        //       console.log('default');
-        //     }
-        // })
+/**
+ * this will uppercase the first letter in the string
+ * @param string the string to affect
+ * @returns a string
+ * taken from a website do not steal
+ */
+const upFirstChar = (string: string) => string.charAt(0).toUpperCase() + string.slice(1);
+/**
+ * this func will create 'const [state, setState] = useState(initState);' from 'rightObjProps' and insert from 'path'
+ * @param path the path to append siblings to before deletion
+ * @param rightExpr the props array from ObjectExpression which contains the state
+ */
+export function makeUseStateNode(path: Path, rightObjProps: any[]): Node[] {
+  const states = [];
+  // the rightObjProps will be an array
+  for (let i = 0; i < rightObjProps.length; i++){
+    // declare the node itself to make it easier to work with
+    const objExp = rightObjProps[i];
+    // an ObjectExpression will contain a key with a Node type 'Identifier'
+    const key =  objExp.key;
+    // the actual name of the state as a string and not a Node type
+    const keyName = key.name;
+    // an ObjectExpression will contain a value with a Node type of any Expression (another nested Object or any value)
+    const val = objExp.value;
+    // declare an array pattern for the '[state, setState]'
+    const arrPatt = t.arrayPattern([t.identifier(keyName), t.identifier('set' + upFirstChar(keyName))]);
+    // declares 'useState(initVal)'
+    const callExp = t.callExpression(t.identifier('useState'), [val]);
+    // creates '[state, setState] = useState(initVal);'
+    const varDecl = t.variableDeclarator(arrPatt, callExp);
+    // adds 'const [state, setState] = useState(initState);' as a sibling
+    states.push(t.variableDeclaration('const', [varDecl]));
+    // path.insertBefore(t.variableDeclaration('const', [varDecl]))
+  }
+  console.log(states);
+  path.remove();
+  return states;
+}
+
+/**
+ * replaces this.setState({ state: newState }) with setState(newState)
+ * ALERT -- place function within member expression visitor
+ * @param parentPath exactly what it says
+ */
+export function setStateToHooks(parentPath: any): void {
+  // this will be an array of arguments to make setState Call Arguments with
+  const args = parentPath.node.arguments[0].properties
+  const states = [];
+  for (let i = 0; i < args.length; i++){
+    const keyName = args[i].key.name;
+    const call = t.identifier('set' + upFirstChar(keyName))
+    const arg = args[i].value;
+    const callStatement = t.callExpression(call, [arg])
+    const expStatement = t.expressionStatement(callStatement)
+    states.push(expStatement)
+  }
+  parentPath.replaceWithMultiple(states)
+}
+
+/**
+ * turns 'this.state.example' expressions to 'example'
+ * @param parentPath path.parentPath. this. what it says.
+ */
+  export function stateToHooks (parentPath: any): void {
+    if (t.isMemberExpression(parentPath.parentPath.node)) parentPath.parentPath.node.object = parentPath.node.property;
+	  else parentPath.replaceWith(parentPath.node.property);
+  }
+
+  /**
+   * will DECIMATE all other this statements no matter what. Used within MemberExpression Visitor
+   * WARNING: will literally destroy any and all 'this' statements
+   * @param path pass in the path of MemberExpression where it will look for anything that has to do with 'this'
+   */
+  export function thisRemover(path: any): void {
+    if (t.isThisExpression(path.node.object)){
+      if (t.isMemberExpression(path.node)) path.node.object = path.node.property;
+      if (t.isCallExpression(path.node)) path.node.callee = path.node.property;
+      else path.replaceWith(path.node.property);
+    }
+  }

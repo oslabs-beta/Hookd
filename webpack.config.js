@@ -1,10 +1,10 @@
 const path = require('path');
 
 module.exports= {
-  entry: './client/index.ts',
+  entry: './index.ts',
   output: {
-    path: path.resolve(__dirname, 'build'),
-    filename: 'bundle.js'
+    path: path.resolve(__dirname),
+    filename: 'index.js'
   },
   mode: process.env.NODE_ENV,
   devServer: {
@@ -29,11 +29,7 @@ module.exports= {
         use: {
           loader: 'babel-loader',
           options: {
-            presets: ['@babel/preset-env', '@babel/preset-react'],
-            "plugins": [
-              "@babel/plugin-proposal-class-properties"
-            ]
-            // proxy: {'/api': 'http://localhost:3000'}
+            presets: ['@babel/preset-env', '@babel/preset-react']
           },
         }
       },

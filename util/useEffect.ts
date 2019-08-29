@@ -7,8 +7,7 @@ const fs: any = require('fs');
 const path: any = require('path');
 
 
-const file: string = fs.readFileSync(path.resolve((__dirname as string), '../static/dummyData/app.jsx')).toString();
-// console.log(file);
+const file: string = fs.readFileSync(path.resolve((__dirname as string), '../static/dummyData/app.jsx'), 'utf-8').toString();
 const ast: object = parse(file); 
 const ImpSpecVisitor: {ImportSpecifier: (path: Path)=> void} ={
   // method for traversing through all the ImportSpecifiers

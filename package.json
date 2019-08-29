@@ -4,13 +4,12 @@
   "description": "a cli tool to convert React class components to hooks",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon server/main.ts",
     "build": "NODE_ENV=production webpack",
-    "dev": "NODE_ENV=development nodemon util/useContext.ts util/useEffect.ts",
+    "dev": "NODE_ENV=development nodemon index.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "Devon Vaccarino ",
+  "author": "Devon Vaccarino",
   "license": "ISC",
   "bin": {
     "hookd": "./index.js"
