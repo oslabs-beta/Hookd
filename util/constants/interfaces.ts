@@ -35,10 +35,22 @@ export interface Path {
   unshiftContainer: (newNode: Node) => void;
   isIdentifier:(type: boolean) => false;
 }
+export interface stateDep {
+  [state: string]: stateProps;
+}
+type stateProps = {
+  lcms?: lcms[],
+  handlers?: handlers[]
+}
+export interface lcms {
+  name: string;
+  expressionStatement?: expressionStatement;
+  functionDeclaration?: functionDeclaration;
+}
 export interface expressionStatement {
-  node: Node;
-  // check if a function
-  setsState?: boolean;
+node: Node;
+// check if a function
+setsState?: boolean;
 };
 export interface functionDeclaration {
   node: Node;
@@ -48,13 +60,4 @@ export interface handlers {
   name?: string;
   node?: any; 
   setsState?: boolean; 
-}
-export interface lcms {
-  name: string;
-  expressionStatement?: expressionStatement;
-  functionDeclaration?: functionDeclaration;
-}
-type stateProps = {lcms?: lcms[], handlers?: handlers[]}
-export interface stateDep {
-      [state: string]: stateProps;
 }
