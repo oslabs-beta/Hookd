@@ -65,7 +65,7 @@ ClassDeclaration(path: Path): void {
   let componentName: string = path.get('id').node.name;
   // useState data
   const useStateData: any[] = [];
-  let possibleProps: string = '';
+  let possibleProps: string = '()';
   // useContext data
   let contextToUse: string = '';
   // useEffect data
@@ -252,5 +252,6 @@ traverse(ast, {
   }
 })
 const newCode: string = generate(ast).code;
-fs.writeFileSync(path.join(__dirname, './static/dummyData/newFile.jsx'), newCode as string)
+if (!fs.existsSync(path.resolve(__dirname, './test'))) fs.mkdirSync(path.resolve(__dirname, 'test'));
+fs.writeFileSync(path.join(__dirname, './test/newFile.jsx'), newCode as string)
 export {}
