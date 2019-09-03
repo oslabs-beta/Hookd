@@ -1,4 +1,4 @@
-import {t} from './parser';
+import {t} from './constants/parser';
 import {Path, stateDep} from './constants/interfaces';
 import * as n from './constants/names';
 
