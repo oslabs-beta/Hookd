@@ -128,6 +128,7 @@ const upFirstChar = (string: string) => string.charAt(0).toUpperCase() + string.
  * @param rightExpr the props array from ObjectExpression which contains the state
  */
 export function makeUseStateNode(path: Path, rightObjProps: any[]): Node[] {
+  if (rightObjProps === undefined) return [];
   const states = [];
   // the rightObjProps will be an array
   for (let i = 0; i < rightObjProps.length; i++){
