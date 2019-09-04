@@ -61,7 +61,7 @@ export const classDeclarationVisitor: {ClassDeclaration: (path: Path) => void} =
     let componentName: string = path.get('id').node.name;
     // useState
     const useStateData: any[] = [];
-    let possibleProps: string = '';
+    let possibleProps: string = '()';
     // useContext
     let contextToUse: string = '';
     // useEffect
