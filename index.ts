@@ -16,4 +16,6 @@ traverse(ast, {
   }
 })
 const newCode: string = generate(ast).code;
-fs.writeFileSync(path.join(__dirname, './static/dummyData/newFile.jsx'), newCode as string)
+if (!fs.existsSync(path.resolve(__dirname, './test'))) fs.mkdirSync(path.resolve(__dirname, 'test'));
+fs.writeFileSync(path.join(__dirname, './test/newFile.jsx'), newCode as string)
+export {}
