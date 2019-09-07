@@ -1,11 +1,11 @@
 import {t} from './constants/parser';
-import {Path, stateDep} from './constants/interfaces';
+import {Path, stateDep, handlers, lcms} from './constants/interfaces';
 import * as n from './constants/names';
 
 function depArr (stateToCheck?: any []): any {
   if (!stateToCheck) return null;
   if (stateToCheck.length === 0) return t.arrayExpression();
-  return t.arrayExpression(stateToCheck);
+  return t.arrayExpression(stateToCheck.map(state => t.Identifier(state)));
   }
 function createReturnStatement (returnFunction: any): any {
   // define 'return'
@@ -32,14 +32,20 @@ export function createUseEffect (body: any[], opts?: {lcm?: string, returnFuncti
   const returnStatement: any[] = opts.returnFunction.length > 0 ? createReturnStatement(opts.returnFunction) : [];
   // create the expressionstatement
   // console.log(body.concat(returnStatement));
+  if (!secondArg) return t.ExpressionStatement(
+    //  use the identifier useEffect
+      t.callExpression(t.identifier('useEffect'),
+      //arrow function argument
+      [t.arrowFunctionExpression([], t.blockStatement(body.concat(returnStatement)))]
+      )
+    );
  return t.ExpressionStatement(
   //  use the identifier useEffect
     t.callExpression(t.identifier('useEffect'),
     //arrow function argument
     [t.arrowFunctionExpression([], t.blockStatement(body.concat(returnStatement))),
-      //put optional argument for empty array
-    ],
-    )
+    secondArg //put optional argument for empty array
+    ])
   );
 }
 
@@ -61,7 +67,7 @@ export function checkIfHandler(methodName: string) {
 }
 // check each lcm in dependency array
 export function parseStateDep(stateDep: stateDep) {
-  let handlers: any[] = [];
+  // let handlers: any[] = [];
   // options to pass into useEffect contructor function
   
   let useEffectArr: any[] = [];
@@ -80,12 +86,12 @@ export function parseStateDep(stateDep: stateDep) {
     };
     // need to loop through handlers and check if lcms contain the same handler
     // we already know that handlers work with a piece of state
-    if(stateDep[state].handlers) {
-      stateDep[state].handlers.forEach(handler => {
-        handlers.push(handler)
-        // console.log(handler);
-      })
-    }
+    // if(stateDep[state].handlers) {
+    //   stateDep[state].handlers.forEach(handler => {
+    //     handlers.push(handler)
+    //     // console.log(handler);
+    //   })
+    // }
     if(stateDep[state].lcms) {
       stateDep[state].lcms.forEach(lcm => {
         // console.log(lcm);
@@ -102,6 +108,7 @@ export function parseStateDep(stateDep: stateDep) {
           body.push(lcm.expressionStatement.node);
         }
         if (CDU && setsState && !CWU) {
+          if(!opts.stateToCheck) opts.stateToCheck = [];
           opts.stateToCheck.push(state);
           body.push(lcm.expressionStatement.node);
         }
@@ -194,5 +201,39 @@ export function setStateToHooks(parentPath: any): void {
       if (t.isMemberExpression(path.node)) path.node.object = path.node.property;
       if (t.isCallExpression(path.node)) path.node.callee = path.node.property;
       else path.replaceWith(path.node.property);
+    }
+  }
+
+  export function buildStateDepTree(currMethodName: string, expressionStatement: any, stateDependencies: stateDep, stateName: string, setsState: boolean) {
+    // let lcmsArr: lcms[] = []
+    const lcmsObj: lcms = {
+      name: currMethodName, 
+      expressionStatement: {
+        node: expressionStatement, 
+        setsState
+      }
+    };
+    // let isHandler = checkIfHandler(currMethodName);
+    // if the currMethodName is not a handler then create the lcmsObject
+    // if (!isHandler) lcmsArr = [lcmsObj];
+    // if the state property is defined then we can update the individual properties
+    if(stateDependencies.hasOwnProperty(stateName)) {
+      // console.log('stateDeps: ', stateDependencies);
+      // if lcmsArr exists then we know the current method is not a handler
+      // if there is already an lcms array then we push the new lcmsObj onto it
+      // lcmsArr && 
+      // if (stateDependencies[stateName].hasOwnProperty('lcms')) 
+      stateDependencies[stateName].lcms.push(lcmsObj)
+      // if there stateDep obj doesn't have a lcmsArr then instantiate it
+      // else stateDependencies[stateName].lcms= [lcmsObj];
+      // else stateDependencies[stateName].handlers = handlers;
+    }
+    // if the state property is not defined yet, we need to initialize it
+    else {
+      // if lcmsObj is defined then set the lcms property to the lcmsArr
+      // if (!isHandler) 
+      stateDependencies[stateName] = {lcms: [lcmsObj]};
+      // if lcmsObj is undefined then we are in a handler, not a lcm
+      // else stateDependencies[stateName] = {handlers}; 
     }
   }

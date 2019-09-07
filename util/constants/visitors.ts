@@ -1,6 +1,6 @@
 import {t} from './parser';
 import {Path, stateDep, handlers} from './interfaces';
-import {createFunctionDefinitions, checkKeyIdentifier, parseStateDep, checkIfHandler, makeUseStateNode, setStateToHooks, stateToHooks, thisRemover} from '../helperfunctions';
+import {createFunctionDefinitions, checkKeyIdentifier, parseStateDep, checkIfHandler, makeUseStateNode, setStateToHooks, stateToHooks, thisRemover, buildStateDepTree} from '../helperfunctions';
 import * as n from './names';
 
 const DeclarationStore: string[] = [];
@@ -81,34 +81,32 @@ export const classDeclarationVisitor: {ClassDeclaration: (path: Path) => void} =
         // traverse through all expression statements and function declarations within a classMethod
         path.traverse({
           ExpressionStatement(path: Path): void {
-            const expressionStatement: any = path.node;
+            let expressionStatement: any = path.node;
+            let functionDeclaration: any;
+            if (path.parentPath.parentPath.node.type === 'FunctionDeclaration'){
+              console.log('----------------')
+              console.log(path.parentPath.parentPath.node.id.name);
+              functionDeclaration = path.parentPath.parentPath.node;
+            }
             path.traverse({
               MemberExpression(path: Path): void {
                 const stateName: string = path.parentPath.node.property ? path.parentPath.node.property.name : null;
-                if (t.isIdentifier(path.node.property, {name: 'state'}) && stateName) {
-                  let lcmsArr;
-                  const lcmsObj = {name: currMethodName, expressionStatement: {node: expressionStatement, setsState: false}};
-                  let isHandler = checkIfHandler(currMethodName);
-                  // if the currMethodName is not a handler then create the lcmsObject
-                  if (!isHandler) lcmsArr = [lcmsObj]
-                  // if the state property is defined then we can update the individual properties
-                  if(stateDependencies[stateName]) {
-                    // console.log('stateDeps: ', stateDependencies);
-                    // if lcmsArr exists then we know the current method is not a handler
-                    // if there is already an lcms array then we push the new lcmsObj onto it
-                    if (lcmsArr && stateDependencies[stateName].lcms) stateDependencies[stateName].lcms.push(lcmsObj)
-                    // if there stateDep obj doesn't have a lcmsArr then instantiate it
-                    else if(lcmsArr) stateDependencies[stateName].lcms= lcmsArr;
-                    else stateDependencies[stateName].handlers = handlers;
+                let isHandler = checkIfHandler(currMethodName);
+                if (!isHandler) {
+                  if (functionDeclaration) expressionStatement = functionDeclaration;
+                  if (t.isIdentifier(path.node.property, {name: 'state'}) && stateName) {
+                    buildStateDepTree(currMethodName, expressionStatement, stateDependencies, stateName, false);
+                    console.log(stateDependencies);
                   }
-                  // if the state property is not defined yet, we need to initialize it
-                  else {
-                    // if lcmsObj is defined then set the lcms property to the lcms Obj
-                    if (!isHandler) stateDependencies[stateName] = {lcms: lcmsArr};
-                    // if lcmsObj is undefined then we are in a handler, not a lcm
-                    else stateDependencies[stateName] = {handlers}; 
+                  if(t.isIdentifier(path.node.property, {name: 'setState'})) {
+                    const stateProperties: any[] = path.parentPath.node.arguments[0].properties;
+                    stateProperties.forEach(property => {
+                      const setStateName: string = property.key.name;
+                      buildStateDepTree(currMethodName, expressionStatement, stateDependencies, setStateName, true);
+                    })
                   }
                 }
+              
               }
             })
           }
