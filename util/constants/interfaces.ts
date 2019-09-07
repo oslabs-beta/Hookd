@@ -45,7 +45,7 @@ type stateProps = {
 export interface lcms {
   name: string;
   expressionStatement?: expressionStatement;
-  functionDeclaration?: functionDeclaration;
+  // functionDeclaration?: functionDeclaration;
 }
 export interface expressionStatement {
 node: Node;
