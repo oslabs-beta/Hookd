@@ -53,6 +53,6 @@ describe(`Should convert 'this.state' expressions`, () => {
     // how do you even check for this. ETA: one day of thinking/whiteboarding to put into code
   })
   xit(`Should account for 'this.setState(() => {})'`, () => {
-    // harder edge case than cb
+    // harder edge case than cb but relatively understandable
   })
 })
