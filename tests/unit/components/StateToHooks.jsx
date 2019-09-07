@@ -17,7 +17,7 @@ class Test1 extends Component {
 
   render() {
     return (
-      <div>
+      <div onClick={this.handler}>
         {this.state.prop}
       </div>
     )
@@ -33,7 +33,32 @@ class Test1 extends Component {
 //     this.state = {
 //       ohno: 'this is not accounted for'
 //     }
-//     this.handler = this.handler1.bind(this);
+//     this.handler = this.handler.bind(this);
+//   }
+
+//   handler(){
+//     this.setState(() => {
+//       const str = 'because this is another edge case out of many';
+//       return { ohno: str};
+//     })
+//   }
+
+//   render() {
+//     return (
+//       <div>
+//         {this.state.ohno}
+//       </div>
+//     )
+//   }
+// }
+
+// class Test3 extends Component {
+//   constructor(props) {
+//     super(props)
+//     this.state = {
+//       holy: 'cow'
+//     }
+//     this.handler = this.handler.bind(this);
 //   }
 
 //   handler(){

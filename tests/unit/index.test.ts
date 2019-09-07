@@ -3,7 +3,7 @@ import * as visitors from '../../util/constants/visitors';
 import * as fs from 'fs';
 import * as path from 'path';
 import { parse, traverse, generate, t} from '../../util/constants/parser'
-
+import { ptg } from '../testHelperFunctions'
 
 /**
  * Commented out are initial tests using shell.js to asynchronously
@@ -23,54 +23,28 @@ import { parse, traverse, generate, t} from '../../util/constants/parser'
 // })()
 
 /**
- * Will parse, traverse, and generate code depending on the visitors you give it
- * @param filePath The path of file to parse, traverse and generate code from
- * @param arrVisitors The visitors to use as an array
+ * - Jest is a small doozy to wrap your head around for a day or two learning curve -
+ * describe will synchronously deploy, so describe (EYY) what you want to do within them
+ * 'it' === 'test'. different syntax, same functionality
+ * 'ptg' rocks. self-made function.
+ * use shelljs later on to actually test the 'hookd' cli
  */
-function ptg(filePath: string, arrVisitors: object[]): string {
-  // parse
-  const ast = parse(fs.readFileSync(path.resolve(__dirname, filePath), 'utf-8') as string);
-  // traverse
-  traverse(ast, {
-    enter(path:Path) {
-      for (let i = 0; i < arrVisitors.length; i++) path.traverse(arrVisitors[i])
-    }
-  })
-  // generate
-  return generate(ast).code;
-}
 
 describe('turns class components to functional components', () => {
+  /*
   const ast: object = parse(fs.readFileSync(path.resolve(__dirname, './ClassToFunction.jsx'), 'utf-8') as string);
   traverse(ast as object, visitors.classDeclarationVisitor as object);
   const str: string = generate(ast).code as string;
+  */
+  // above it similar to the 'ptg' one-liner below
+  const str = ptg('./unit/components/ClassToFunction.jsx', [visitors.classDeclarationVisitor]);
+  it('Should turn class components to arrow functions', () => {
   expect(str).toMatch(/const Test1 \= props \=\>/);
   expect(str).toMatch('const Test2 = () =>')
-});
-
-describe('turns state in a class method to useState equivalents',  () => {
-  /* 
-  const ast = parse(fs.readFileSync(path.resolve(__dirname, './ConstructorToHooks.jsx'), 'utf-8') as string);
-  traverse(ast as object, {
-    enter(path: Path) {
-      path.traverse(visitors.ImpDeclVisitor);
-      path.traverse(visitors.classDeclarationVisitor);
-    }
+  })
+  xit('Should ignore classes that are not components', () => {
+    // should there be a reason there would be a class declaration inside a jsx file?
+    // find out next time in 'Testing 123s'
+    expect(str).toBeDefined();
   });
-  */
-  // above is equivalent to below 'ptg'
-  const str = ptg('./ConstructorToHooks.jsx', [visitors.ImpDeclVisitor, visitors.classDeclarationVisitor]);
-  xit(`doesn't define any state for pure components`, ()=>{
-    // find a way to check a node for no state declaration
-  })
-  it('converts state into useState equivalents', () => {
-    expect(str).toMatch(`const [prop, setProp] = useState('properties')`);
-    expect(str).toMatch(`const [obj, setObj]`);
-  })
-  xit('converts class properties state to useState', () => {
-    // find a way to convert class property state to hooks and ignore constructor
-    expect(str).toMatch('const [short, setShort] = ');
-  })
-})
-
-// describe('')
+});
