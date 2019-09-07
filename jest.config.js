@@ -1,8 +1,11 @@
+// specifies environment variables and other options
 module.exports = {
+  "verbose": true,
   "roots": [
-    "<rootDir>/__test__"
+    "<rootDir>/tests"
   ],
   "transform": {
     "^.+\\.tsx?$": "ts-jest"
-  }
+  },
+  "setupFilesAfterEnv": ["<rootDir>/tests/jest-preload.js"],
 }

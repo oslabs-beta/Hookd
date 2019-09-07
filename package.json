@@ -5,7 +5,7 @@
   "scripts": {
     "build": "NODE_ENV=production webpack",
     "dev": "NODE_ENV=development nodemon index.ts static/dummyData/App.jsx",
-    "test": "jest --verbose"
+    "test": "jest"
   },
   "keywords": [],
   "author": "Devon Vaccarino",
@@ -27,7 +27,6 @@
     "jest": "^24.9.0",
     "nodemon": "^1.19.1",
     "sass-loader": "^7.2.0",
-    "shelljs": "^0.8.3",
     "style-loader": "^1.0.0",
     "ts-jest": "^24.0.2",
     "ts-loader": "^6.0.4",

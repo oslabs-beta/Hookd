@@ -5,7 +5,7 @@ const generate : any = require('@babel/generator').default;
 function parse(file: string): any {
   const ast: any = parser.parse(file, {
     sourceType: 'module',
-    plugins: ['jsx']
+    plugins: ['jsx', 'classProperties']
   })
   return ast;
 }
