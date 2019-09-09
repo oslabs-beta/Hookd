@@ -1,11 +1,14 @@
 import {t} from './constants/parser';
-import {Path, stateDep, handlers, lcms} from './constants/interfaces';
+import {Path, stateDep, handlers, lcms, handlerObj, handlerDepTree, Node} from './constants/interfaces';
 import * as n from './constants/names';
 
 function depArr (stateToCheck?: any []): any {
   if (!stateToCheck) return null;
   if (stateToCheck.length === 0) return t.arrayExpression();
-  return t.arrayExpression(stateToCheck.map(state => t.Identifier(state)));
+  return t.arrayExpression(stateToCheck.map(state => {
+    if (Array.isArray(state)) return state.map(innerStateArr => t.Identifier(innerStateArr));
+    return t.Identifier(state)
+  }));
   }
 function createReturnStatement (returnFunction: any): any {
   // define 'return'
@@ -56,69 +59,117 @@ export function createFunctionDefinitions(name: string, paramNames: any[], body:
     t.blockStatement(body)
   )
 }
-
 // checks for key identifiers for method names
 export function checkKeyIdentifier(name: string, path: Path): any {
   return path.get('key').isIdentifier({name})
 }
+// checks if the current method is a non-lcm handler
 export function checkIfHandler(methodName: string) {
   if (methodName !== n.CDM && methodName !== n.CDU && methodName !== n.CWU && methodName !== n.C && methodName !== n.R) return true;
   return false;
 }
-// check each lcm in dependency array
-export function parseStateDep(stateDep: stateDep) {
-  // let handlers: any[] = [];
-  // options to pass into useEffect contructor function
-  
+/** 
+ * @param stateDep is the stateDepTree of all state references within lcms. See interfaces.ts, stateDep
+ * @param handlerDepTree is the handlerDepTree that refences all non-lcm methods that are referenced within lcm methods.  See interfaces.ts, handlerDepTree
+ * Does the major work to parse through the created stateDepTree/handlerDepTree to format the depTree into their corresponding UE hooks.
+ * This is based on several things but boils down to the type of lcm the expressionstatement was called in and whether it setsState.
+ * 
+*/
+export function parseStateDep(stateDep: stateDep, handlerDepTree? : handlerDepTree) {
+  // array of useEffect hooks
   let useEffectArr: any[] = [];
+  // need to account for two cases for handlerDepTree
+  // case 1: stateful references are more than 1
+  // loop through the lcms array and build the UE opts from lcm expressionstatement, setsState property, and lcm name
+  // (all state properties should have the same reference to the expression statements)
+  // this will be its own UE hook 
+  // case 2: stateful references === 1
+  // handler should be grouped with the rest of the stateArr
+  if (handlerDepTree) {
+    // check data and reformat it to use in rest of code
+    const handlerUseEffect = Object.entries(handlerDepTree);
+      handlerUseEffect.forEach(handlerArr => {
+        const handlerName: string = handlerArr[0];
+        const stateArr = Object.entries(handlerArr[1]);
+        // if the handler doesn't have any lcm references there's no need to put it in UE
+        console.log('!!!!!!!!!!!!!!!!!!!!')
+        console.log('stateArr: ', stateArr)
+        if (stateArr[0][1].lcms.length === 0) delete handlerDepTree[handlerName];
+        else {
+          let mappedLcmsObj: any;
+          // set key name for stateDepTree
+          let stateDepTreeKey: string;
+          // if there is more than one stateful reference within a handler, logic pertaining to that handler needs to be grouped together
+          stateArr.forEach(statePair => {
+            const lcmsObj = statePair[1];
+            mappedLcmsObj = lcmsObj.lcms.map(lcm => {
+              return {expressionStatement: {node: lcm.expressionStatement, setsState: lcmsObj.setsState}, name: lcm.name};
+            });
+          });
+          if (stateArr.length > 1) {
+            // key becomes the entire array of state that is being tracked through the handler
+            const stateNameKeys: string[] = Object.keys(handlerArr[1]);
+            stateDepTreeKey = JSON.stringify(stateNameKeys);
+            stateDep[stateDepTreeKey] = {lcms: mappedLcmsObj};
+           }
+          else {
+            stateDepTreeKey = stateArr[0][0];
+            console.log('stateDepTreeKey: ', stateDepTreeKey);
+            console.log('mappedLcmsObj for length of 1: ', mappedLcmsObj);
+            stateDep[stateDepTreeKey].lcms = stateDep[stateDepTreeKey].lcms.concat(mappedLcmsObj);
+          }
+        }
+      })
+  }
   const stateArr = Object.keys(stateDep);
-  // for each state that is being tracked through the clms we must check all handlers and lcm properties
+  // for each state that is being tracked through the lcms we must check all lcm properties
   stateArr.forEach(state => {
-    console.log('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
-    console.log('state: ', state);
-      // body to pass into useEffect
+    // console.log('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
+    // console.log('state: ', state);
+    // console.log('stateDep[state]', stateDep[state]);
+    // body to pass into useEffect
     let body: any[] = [];
-    // handlers to check against in lcms
     let opts: {lcm?: string, returnFunction?: any[], stateToCheck?: any[]} = {
       lcm: '',
       returnFunction: [],
       stateToCheck: []
     };
-    // need to loop through handlers and check if lcms contain the same handler
-    // we already know that handlers work with a piece of state
-    // if(stateDep[state].handlers) {
-    //   stateDep[state].handlers.forEach(handler => {
-    //     handlers.push(handler)
-    //     // console.log(handler);
-    //   })
-    // }
+    // catches duplicates within nodes
+    const nodeCache: any = {};
     if(stateDep[state].lcms) {
       stateDep[state].lcms.forEach(lcm => {
-        // console.log(lcm);
         const setsState: boolean = lcm.expressionStatement.setsState 
+        const node: Node = lcm.expressionStatement.node;
+        const nodeKey = JSON.stringify(node);
         const CDU: boolean = lcm.name === n.CDU;
         const CWU: boolean = lcm.name === n.CWU;
-        console.log({setsState, CDU})
-        if (!CDU && !setsState && !CWU) {
-          opts.stateToCheck = null;
-          body.push(lcm.expressionStatement.node);
-        }
-        if (!CDU && setsState && !CWU) {
-          opts.stateToCheck = [];
-          body.push(lcm.expressionStatement.node);
-        }
-        if (CDU && setsState && !CWU) {
-          if(!opts.stateToCheck) opts.stateToCheck = [];
-          opts.stateToCheck.push(state);
-          body.push(lcm.expressionStatement.node);
-        }
-        if (CWU) {
-          opts.returnFunction.push(lcm.expressionStatement.node);
+        // console.log({setsState, CDU})
+        if (!nodeCache[nodeKey]){
+          if (!CDU && !setsState && !CWU) {
+            opts.stateToCheck = null;
+            body.push(node);
+          }
+          if (!CDU && setsState && !CWU) {
+            console.log(node);
+            opts.stateToCheck = [];
+            body.push(node);
+          }
+          if (CDU && setsState && !CWU) {
+            if(!opts.stateToCheck) opts.stateToCheck = [];
+            // parse the state in the case where we pass in a stringified array for handlers
+            const newState = state.charAt(0) === '[' ? JSON.parse(state) : state;
+            opts.stateToCheck.push(newState);
+            body.push(node);
+          }
+          if (CWU) {
+            console.log(node);
+            opts.returnFunction.push(node);
+          }
+          nodeCache[nodeKey] = true;
         }
       })
       useEffectArr.push(createUseEffect(body, opts));
     }
-    
   })
   return useEffectArr;
 }
@@ -157,7 +208,7 @@ export function makeUseStateNode(path: Path, rightObjProps: any[]): Node[] {
     states.push(t.variableDeclaration('const', [varDecl]));
     // path.insertBefore(t.variableDeclaration('const', [varDecl]))
   }
-  console.log(states);
+  // console.log(states);
   path.remove();
   return states;
 }
@@ -205,7 +256,6 @@ export function setStateToHooks(parentPath: any): void {
   }
 
   export function buildStateDepTree(currMethodName: string, expressionStatement: any, stateDependencies: stateDep, stateName: string, setsState: boolean) {
-    // let lcmsArr: lcms[] = []
     const lcmsObj: lcms = {
       name: currMethodName, 
       expressionStatement: {
@@ -213,27 +263,61 @@ export function setStateToHooks(parentPath: any): void {
         setsState
       }
     };
-    // let isHandler = checkIfHandler(currMethodName);
-    // if the currMethodName is not a handler then create the lcmsObject
-    // if (!isHandler) lcmsArr = [lcmsObj];
-    // if the state property is defined then we can update the individual properties
     if(stateDependencies.hasOwnProperty(stateName)) {
-      // console.log('stateDeps: ', stateDependencies);
-      // if lcmsArr exists then we know the current method is not a handler
-      // if there is already an lcms array then we push the new lcmsObj onto it
-      // lcmsArr && 
-      // if (stateDependencies[stateName].hasOwnProperty('lcms')) 
       stateDependencies[stateName].lcms.push(lcmsObj)
-      // if there stateDep obj doesn't have a lcmsArr then instantiate it
-      // else stateDependencies[stateName].lcms= [lcmsObj];
-      // else stateDependencies[stateName].handlers = handlers;
     }
     // if the state property is not defined yet, we need to initialize it
     else {
-      // if lcmsObj is defined then set the lcms property to the lcmsArr
-      // if (!isHandler) 
       stateDependencies[stateName] = {lcms: [lcmsObj]};
-      // if lcmsObj is undefined then we are in a handler, not a lcm
-      // else stateDependencies[stateName] = {handlers}; 
     }
   }
+
+  export function buildHandlerDepTree(handlerDepTree: handlerDepTree, handlerName: string,stateName: string, setsState: boolean, node: Node, currMethodName?: string,  expressionStatement?: Node ) {
+    // requires two passes, one to set the handlerObj for the initial pass when we discover a handler function
+    // the other to add the lcmsObj when we find this handler referenced in a lcm
+    const handlerObj: handlerObj = {
+      [stateName]: {
+        lcms: [],
+        node,
+        setsState
+      }
+    };
+    
+    // check if this is the second pass to add the lcmsObj
+    // console.log('inside buildHandlerDepTree', currMethodName, expressionStatement)
+    if (currMethodName && expressionStatement) {
+      // console.log('lcmsObj traversal was hit')
+      const lcmsObj = {
+          expressionStatement,
+          name: currMethodName
+        }
+      if(handlerDepTree.hasOwnProperty(handlerName)) {
+          handlerDepTree[handlerName][stateName].lcms.push(lcmsObj);
+        }
+      else {
+        handlerDepTree[handlerName] = handlerObj;
+      }
+    }
+    // if we're on our first pass we need to add our handlerObj
+    else {
+      // if we haven't seen this handler before then add the entire handlerObj;
+      if (!handlerDepTree.hasOwnProperty(handlerName)) {
+        handlerDepTree[handlerName] = handlerObj;
+      }
+      else {
+        // if our handlerDepTree already has seen a state only update the setsState property with a truthy value
+        if (handlerDepTree[handlerName].hasOwnProperty(stateName) && setsState) {
+          handlerDepTree[handlerName][stateName].setsState = setsState;
+        }
+        // if it's a new state ref then add a new object to the handlerName
+        else {
+          handlerDepTree[handlerName][stateName] = {
+            lcms: [],
+            node,
+            setsState
+          };
+        }
+      }
+    }
+  }
+  

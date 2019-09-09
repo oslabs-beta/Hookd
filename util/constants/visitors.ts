@@ -1,6 +1,6 @@
 import {t} from './parser';
-import {Path, stateDep, handlers} from './interfaces';
-import {createFunctionDefinitions, checkKeyIdentifier, parseStateDep, checkIfHandler, makeUseStateNode, setStateToHooks, stateToHooks, thisRemover, buildStateDepTree} from '../helperfunctions';
+import {Path, stateDep, handlers, handlerDepTree, Node} from './interfaces';
+import {createFunctionDefinitions, checkKeyIdentifier, parseStateDep, checkIfHandler, makeUseStateNode, setStateToHooks, stateToHooks, thisRemover, buildStateDepTree, buildHandlerDepTree} from '../helperfunctions';
 import * as n from './names';
 
 const DeclarationStore: string[] = [];
@@ -55,7 +55,7 @@ export const memberExpVisitor: object = {
 export const classDeclarationVisitor: {ClassDeclaration: (path: Path) => void} = {
   ClassDeclaration(path: Path): void {
     isAComponent = path.node.superClass && (path.get('superClass').isIdentifier({name: 'Component'}) || path.get('superClass').get('property').isIdentifier({name: 'Component'}));
-    console.log('isAComponent:', isAComponent);
+    // console.log('isAComponent:', isAComponent);
     if (!isAComponent) return path.stop();
     // class declaration
     let componentName: string = path.get('id').node.name;
@@ -67,9 +67,50 @@ export const classDeclarationVisitor: {ClassDeclaration: (path: Path) => void} =
     // useEffect
     const methodPaths: any[] = [];
     // handlers referencing state
-    const handlers: handlers[] = [];
+    const handlerDepTree: handlerDepTree = {}
     // dependency tree of state
     const stateDependencies: stateDep = {};
+  
+    path.traverse({
+      // need to traverse through handlers first before checking them against references in lcms
+      ClassMethod(path: Path):void {
+        const cdm = checkKeyIdentifier(n.CDM, path),
+        cdu = checkKeyIdentifier(n.CDU, path),
+        cwu = checkKeyIdentifier(n.CWU, path),
+        render = checkKeyIdentifier(n.R, path),
+        constructor = checkKeyIdentifier(n.C, path);
+        if (!cdm && !cdu && !cwu && !render && !constructor) {
+          let handlerNode = path.node;
+          let name: string = path.node.key.name ? path.node.key.name : '';
+          let paramNames: any[] = path.node.params;
+          let body: any[] = path.node.body.body;
+          methodPaths.push([createFunctionDefinitions(name, paramNames, body), path]);
+          // check if a handler either setsState or references state
+          path.traverse({
+            ExpressionStatement(path: Path): void {
+              path.traverse({
+                MemberExpression(path: Path): void {
+                  const stateName: string = path.parentPath.node.property ? path.parentPath.node.property.name : null;
+                    if (t.isIdentifier(path.node.property, {name: 'state'}) && stateName) {
+                      buildHandlerDepTree(handlerDepTree, name, stateName, false, handlerNode);
+                    }
+                    if(t.isIdentifier(path.node.property, {name: 'setState'})) {
+                      const stateProperties: any[] = path.parentPath.node.arguments[0].properties;
+                      stateProperties.forEach(property => {
+                        const setStateName: string = property.key.name;
+                        buildHandlerDepTree(handlerDepTree, name, setStateName, true, handlerNode);
+                      })
+                    }
+                }
+  
+              })
+            }
+          })
+          console.log('````````````````````````');
+          console.log('handlerDepTree before lcm check: ', handlerDepTree);
+        }
+      }
+    })
     path.traverse({
       ClassMethod(path: Path): void {
         let currMethodName = path.node.key.name;
@@ -78,26 +119,24 @@ export const classDeclarationVisitor: {ClassDeclaration: (path: Path) => void} =
         cwu = checkKeyIdentifier(n.CWU, path),
         render = checkKeyIdentifier(n.R, path),
         constructor = checkKeyIdentifier(n.C, path);
-        // traverse through all expression statements and function declarations within a classMethod
+        // traverse through all expression statements and function declarations within a classMethod to create general stateDepTree
         path.traverse({
           ExpressionStatement(path: Path): void {
             let expressionStatement: any = path.node;
             let functionDeclaration: any;
-            if (path.parentPath.parentPath.node.type === 'FunctionDeclaration'){
-              console.log('----------------')
-              console.log(path.parentPath.parentPath.node.id.name);
-              functionDeclaration = path.parentPath.parentPath.node;
-            }
+            if (path.parentPath.parentPath.node.type === 'FunctionDeclaration') functionDeclaration = path.parentPath.parentPath.node;
             path.traverse({
               MemberExpression(path: Path): void {
                 const stateName: string = path.parentPath.node.property ? path.parentPath.node.property.name : null;
                 let isHandler = checkIfHandler(currMethodName);
                 if (!isHandler) {
+                  // assign expressionstatement node to functiondeclaration node if there is one
                   if (functionDeclaration) expressionStatement = functionDeclaration;
+                  // check if the current member expression is a state object
                   if (t.isIdentifier(path.node.property, {name: 'state'}) && stateName) {
                     buildStateDepTree(currMethodName, expressionStatement, stateDependencies, stateName, false);
-                    console.log(stateDependencies);
                   }
+                  // check if member expression is a setState object
                   if(t.isIdentifier(path.node.property, {name: 'setState'})) {
                     const stateProperties: any[] = path.parentPath.node.arguments[0].properties;
                     stateProperties.forEach(property => {
@@ -131,25 +170,50 @@ export const classDeclarationVisitor: {ClassDeclaration: (path: Path) => void} =
           })
           useStateData.push(path, stateArr);
         } 
-        if (!cdm && !cdu && !cwu && !render && !constructor) {
-          let name: string = path.node.key.name ? path.node.key.name : '';
-          let paramNames: any[] = path.node.params;
-          let body: any[] = path.node.body.body;
-          // console.log(path.node);
-          methodPaths.push([createFunctionDefinitions(name, paramNames, body), path]) 
-          handlers.push({node: path.node, name, setsState: false});
+        if (cdm || cdu || cwu) {
+          //traverse through lcm and check if a handler that uses state is referenced. If it is then build the handlerDepTree using the node that references that handler
+          path.traverse({
+            ExpressionStatement(path: Path): void {
+              let expressionStatement: Node = path.node;
+              let functionDeclaration: Node;
+              if (path.parentPath.parentPath.node.type === 'FunctionDeclaration'){
+                // console.log('----------------')
+                // console.log('functionDeclarations: ', path.parentPath.parentPath.node.id.name);
+                functionDeclaration = path.parentPath.parentPath.node;
+              }
+              path.traverse({
+                MemberExpression(path: Path): void {
+                  if (functionDeclaration) expressionStatement = functionDeclaration;
+                  Object.keys(handlerDepTree).forEach(handlerName => {
+                    if (handlerName === path.node.property.name) {
+                      console.log('handlerName after check in lcm: ', handlerName)
+                      const stateNames = Object.keys(handlerDepTree[handlerName]);
+                      // console.log('stateNames prior to building handler dep tree', stateNames);
+                      stateNames.forEach(statename => {
+                        const setsState = handlerDepTree[handlerName][statename].setsState;
+                        const node = handlerDepTree[handlerName][statename].node;
+                        buildHandlerDepTree(handlerDepTree, handlerName, statename, setsState, node, currMethodName, expressionStatement)
+                      })
+                      console.log('------~~~~~~-------')
+                      console.log('handlerDepTree after lcm check: ', handlerDepTree)
+                    }
+                  })            
+                }
+              })
+            }
+          })
+          path.remove();
         }
-        if(cdm) path.remove();
-        if(cdu) path.remove();
-        if(cwu) path.remove();
-        if(render) path.replaceWith(path.node.body.body[0]);
+        if(render) path.replaceWithMultiple(path.node.body.body);
      }
     })
+    // console.log('~~~~-------~~~~~-----');
+    // console.log(handlerDepTree.changeTheWorldHandler.isRevolutionary.lcms);
     methodPaths.forEach(arr => {
       arr[1].replaceWith(arr[0])
     })
     // need to change position of useEffect so it's after state declarations
-    parseStateDep(stateDependencies).forEach(UE => {
+    parseStateDep(stateDependencies, handlerDepTree).forEach(UE => {
       path.get('body').unshiftContainer('body', UE);
     })
     // prepends 'const [state, setState] = useState(initVal)' outside of the constructor function
@@ -165,7 +229,7 @@ export const classDeclarationVisitor: {ClassDeclaration: (path: Path) => void} =
               // if DeclarationStore includes left side expession
               if(DeclarationStore.includes(path.node.object.name)){
                 contextToUse = path.node.object.name;
-                console.log(contextToUse);
+                // console.log(contextToUse);
                 // console.log('context is found and contextToUse is', contextToUse);
               }
             }
