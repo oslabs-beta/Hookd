@@ -1,7 +1,6 @@
 import {t} from './constants/parser';
 import {Path, stateDep, handlers, lcms, Node} from './constants/interfaces';
 import * as n from './constants/names';
-import { pathToFileURL } from 'url';
 
 function depArr (stateToCheck?: any []): any {
   if (!stateToCheck) return null;
