@@ -163,7 +163,7 @@ export function makeUseStateNode(path: Path, rightObjProps: any[]): Node[] {
 }
 
 /**
- * replaces this.setState({ state: newState }) with setState(newState)
+ * replaces this.setState({ state: newState }) and this.setState(anon => {return { callback }}) with setState(newState)
  * ALERT -- place function within member expression visitor
  * @param parentPath exactly what it says
  */
@@ -185,8 +185,7 @@ export function setStateToHooks(parentPath: any): void {
       else parentPath.insertBefore(expressions[i])
     }
   }
-  // HAVE TO ACCOUNT FOR AN IDENTIFIER IN ARG[0]
-  // another edge case for the wild
+  // HAVE TO ACCOUNT IF AN IDENTIFIER IS ARG[0]
   for (let i = 0; i < args.length; i++){
     const keyName = args[i].key.name;
     const call = t.identifier('set' + upFirstChar(keyName))
