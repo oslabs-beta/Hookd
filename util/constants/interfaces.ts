@@ -15,6 +15,8 @@ export interface Node {
   operator:{body: any[]}
   program: {program: any};
   declaration: any;
+  callee: any;
+  value: any;
 }
 export interface Path {
   node: Node;

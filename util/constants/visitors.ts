@@ -1,6 +1,6 @@
 import {t} from './parser';
 import {Path, stateDep, handlers} from './interfaces';
-import {createFunctionDefinitions, checkKeyIdentifier, parseStateDep, checkIfHandler, makeUseStateNode, setStateToHooks, stateToHooks, thisRemover, buildStateDepTree} from '../helperfunctions';
+import {createFunctionDefinitions, checkKeyIdentifier, parseStateDep, checkIfHandler, makeUseStateNode, setStateToHooks, stateToHooks, thisRemover, buildStateDepTree, strRemover} from '../helperfunctions';
 import * as n from './names';
 
 const DeclarationStore: string[] = [];
@@ -41,6 +41,20 @@ export const memberExpVisitor: object = {
   MemberExpression(path: Path): void{
     if (!isAComponent) return path.stop();
     if(path.node.property.name === 'setState'){
+      const arg0: Path = path.parentPath.get('arguments')[0];
+      if (t.isFunction(arg0.node) && (arg0.node.params.length)){
+        const setStateParam = arg0.get('params')[0].node
+        //console.log(setStateParam);
+        //console.log(arg0)
+        arg0.traverse({
+          MemberExpression(path: Path){
+            if(t.isIdentifier(path.node.object, {name: setStateParam.name})){
+              console.log(path.node)
+              strRemover(path as Path, setStateParam.name as string)
+            }
+          }
+        })
+      }
       // console.log(`yee i'm inside of member expression`)
       setStateToHooks(path.parentPath as Path);
     } else if (path.node.property.name === 'state' && t.isThisExpression(path.node.object)){

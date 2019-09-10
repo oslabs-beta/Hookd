@@ -1,6 +1,7 @@
 import {t} from './constants/parser';
-import {Path, stateDep, handlers, lcms} from './constants/interfaces';
+import {Path, stateDep, handlers, lcms, Node} from './constants/interfaces';
 import * as n from './constants/names';
+import { pathToFileURL } from 'url';
 
 function depArr (stateToCheck?: any []): any {
   if (!stateToCheck) return null;
@@ -169,8 +170,24 @@ export function makeUseStateNode(path: Path, rightObjProps: any[]): Node[] {
  */
 export function setStateToHooks(parentPath: any): void {
   // this will be an array of arguments to make setState Call Arguments with
-  const args = parentPath.node.arguments[0].properties
-  const states = [];
+  const states: Node[] = [];
+  // props of the object in setState to iterate through
+  let args: Node[] | undefined = parentPath.node.arguments[0].properties;
+  // node of arg[0] of setState
+  const arg0: Node = parentPath.node.arguments[0];
+  // if arg[0] is a func and has a parameter
+  // node of arg[1] of setState
+  const arg1: Node | undefined =  parentPath.node.arguments[1];
+  // if arg[0] is not an object, assume it's an anonymous cb function
+  if (t.isFunction(arg0) && t.isBlock(arg0.body)) {
+    const expressions = arg0.body.body;
+    for (let i = 0; i < expressions.length; i++) {
+      if (t.isReturnStatement(expressions[i])) {args = expressions[i].argument.properties;}
+      else parentPath.insertBefore(expressions[i])
+    }
+  }
+  // HAVE TO ACCOUNT FOR AN IDENTIFIER IN ARG[0]
+  // another edge case for the wild
   for (let i = 0; i < args.length; i++){
     const keyName = args[i].key.name;
     const call = t.identifier('set' + upFirstChar(keyName))
@@ -179,6 +196,7 @@ export function setStateToHooks(parentPath: any): void {
     const expStatement = t.expressionStatement(callStatement)
     states.push(expStatement)
   }
+  if (t.isFunction(arg1)) parentPath.insertAfter(arg1.body)
   parentPath.replaceWithMultiple(states)
 }
 
@@ -186,23 +204,35 @@ export function setStateToHooks(parentPath: any): void {
  * turns 'this.state.example' expressions to 'example'
  * @param parentPath path.parentPath. this. what it says.
  */
-  export function stateToHooks (parentPath: any): void {
-    if (t.isMemberExpression(parentPath.parentPath.node)) parentPath.parentPath.node.object = parentPath.node.property;
-	  else parentPath.replaceWith(parentPath.node.property);
+export function stateToHooks (parentPath: any): void {
+  if (t.isMemberExpression(parentPath.parentPath.node)) parentPath.parentPath.node.object = parentPath.node.property;
+  else parentPath.replaceWith(parentPath.node.property);
+}
+/**
+ * will DECIMATE all other this statements no matter what. Used within MemberExpression Visitor
+ * WARNING: will literally destroy any and all 'this' statements
+ * @param path pass in the path of MemberExpression where it will look for anything that has to do with 'this'
+ */
+export function thisRemover(path: any): void {
+  if (t.isThisExpression(path.node.object)){
+    if (t.isMemberExpression(path.node)) path.node.object = path.node.property;
+    if (t.isCallExpression(path.node)) path.node.callee = path.node.property;
+    else path.replaceWith(path.node.property);
   }
+}
 
-  /**
-   * will DECIMATE all other this statements no matter what. Used within MemberExpression Visitor
-   * WARNING: will literally destroy any and all 'this' statements
-   * @param path pass in the path of MemberExpression where it will look for anything that has to do with 'this'
-   */
-  export function thisRemover(path: any): void {
-    if (t.isThisExpression(path.node.object)){
-      if (t.isMemberExpression(path.node)) path.node.object = path.node.property;
-      if (t.isCallExpression(path.node)) path.node.callee = path.node.property;
-      else path.replaceWith(path.node.property);
-    }
+/**
+ * alternative of thisRemover; will remove specified string's member expression
+ * @param path pass in the path of MemberExpression where it will look for anything that has to do with 'str'
+ * @param str the str to remove in syntax tree
+ */
+export function strRemover(path: Path, str: string) {
+  if (t.isIdentifier(path.node.object, { name: str })){
+    if (t.isMemberExpression(path.node)) path.node.object = path.node.property;
+    if (t.isCallExpression(path.node)) path.node.callee = path.node.property;
+    else path.replaceWith(path.node.property);
   }
+}
 
   export function buildStateDepTree(currMethodName: string, expressionStatement: any, stateDependencies: stateDep, stateName: string, setsState: boolean) {
     // let lcmsArr: lcms[] = []

@@ -27,52 +27,49 @@ class Test1 extends Component {
 /**
  * uncomment if accounting for this.setState callback argument
  */
-// class Test2 extends Component {
-//   constructor(props) {
-//     super(props)
-//     this.state = {
-//       ohno: 'this is not accounted for'
-//     }
-//     this.handler = this.handler.bind(this);
-//   }
+class Test2 extends Component {
+  constructor(props) {
+    super(props)
+    this.state = {
+      ohno: 'this is not accounted for'
+    }
+    this.handler = this.handler.bind(this);
+  }
+  handler(){
+    this.setState(() => {
+      const str = 'because this is another edge case out of many';
+      return { ohno: str };
+    })
+  }
+  render() {
+    return (
+      <div>
+        {this.state.ohno}
+      </div>
+    )
+  }
+}
 
-//   handler(){
-//     this.setState(() => {
-//       const str = 'because this is another edge case out of many';
-//       return { ohno: str};
-//     })
-//   }
-
-//   render() {
-//     return (
-//       <div>
-//         {this.state.ohno}
-//       </div>
-//     )
-//   }
-// }
-
-// class Test3 extends Component {
-//   constructor(props) {
-//     super(props)
-//     this.state = {
-//       holy: 'cow'
-//     }
-//     this.handler = this.handler.bind(this);
-//   }
-
-//   handler(){
-//     this.setState(() => {
-//       const str = 'because this is another edge case out of many';
-//       return { ohno: str};
-//     })
-//   }
-
-//   render() {
-//     return (
-//       <div>
-//         {this.state.ohno}
-//       </div>
-//     )
-//   }
-// }
+class Test3 extends Component {
+  constructor(props) {
+    super(props)
+    this.state = {
+      holy: 'cow',
+      ohno: 'wow'
+    }
+    this.handler = this.handler.bind(this);
+  }
+  handler(){
+    this.setState((prevProps) => {
+      const str1 = prevProps.holy + ' because this is another edge case out of many';
+      return { ohno: str1 };
+    })
+  }
+  render() {
+    return (
+      <div>
+        {this.state.ohno}
+      </div>
+    )
+  }
+}
