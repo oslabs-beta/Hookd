@@ -1,5 +1,5 @@
 {
-  "name": "hookd",
+  "name": "@reactionaries/hookd",
   "version": "1.0.0",
   "description": "a cli tool to convert React class components to hooks",
   "scripts": {
@@ -7,8 +7,8 @@
     "dev": "NODE_ENV=development nodemon index.ts static/dummyData/App.jsx",
     "test": "jest"
   },
-  "keywords": [],
-  "author": "Devon Vaccarino",
+  "keywords": ["compiler","cli", "tool", "alpha", "React", "React Hooks"],
+  "author": "Devon Vaccarino, Danny Byrne, Alexander Diep",
   "license": "ISC",
   "bin": {
     "hookd": "./index.js"

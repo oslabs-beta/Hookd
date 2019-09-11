@@ -1,13 +1,18 @@
 import {t} from './parser';
-import {Path, stateDep, handlers} from './interfaces';
-import {createFunctionDefinitions, checkKeyIdentifier, parseStateDep, checkIfHandler, makeUseStateNode, setStateToHooks, stateToHooks, thisRemover, buildStateDepTree} from '../helperfunctions';
+import {Path, stateDep, handlerDepTree, Node} from './interfaces';
+import {createFunctionDefinitions, checkKeyIdentifier, parseStateDep, checkIfHandler, makeUseStateNode, setStateToHooks, stateToHooks, thisRemover, buildStateDepTree, buildHandlerDepTree, strRemover} from '../helperfunctions';
 import * as n from './names';
 
+const HooksStatements: string[] = ['useState', 'useEffect', 'useContext'];
+const ContextStore: string[] = [];
 const DeclarationStore: string[] = [];
 let isAComponent: boolean = true;
 export const ImpSpecVisitor: {ImportSpecifier: (path: Path)=> void} ={
   // method for traversing through all the ImportSpecifiers
   ImportSpecifier(path: Path): void {
+    if(!HooksStatements.includes(path.node.local.name)){
+      DeclarationStore.push(path.node.local.name);
+    }
     // check to see if the property 'imported' is an identifier with the name 'Component'
     if (path.get('imported').isIdentifier({name: 'Component'})) {
       // replace the current path (importSpecifier) with multiple new importSpcefiers
@@ -17,6 +22,7 @@ export const ImpSpecVisitor: {ImportSpecifier: (path: Path)=> void} ={
         t.importSpecifier(t.identifier(n.UC), t.identifier(n.UC)),
       ]);
     }
+    
   }
 }
 
@@ -24,13 +30,11 @@ export const ImpDeclVisitor: {ImportDeclaration: (path: Path) => void} = {
   ImportDeclaration(path: Path): void {
     if (!isAComponent) return path.stop();
     path.traverse(ImpSpecVisitor)
-    // console.log('inside the import declaration, pushing those values into DeclStoreArray to check against the context consumers')
-    // console.log('ImportDeclaration path is', path.node)
     path.traverse({
       ImportDefaultSpecifier (path: Path): void {
-        // console.log('inside path traversal of importDefaultSpecifier')
-        // console.log('ImportDefaultSpecifier path is:', path.node)
-        DeclarationStore.push(path.node.local.name);
+        if((!HooksStatements.includes(path.node.local.name) && !DeclarationStore.includes(path.node.local.name))){
+          DeclarationStore.push(path.node.local.name);
+        }
       }
     })
   }
@@ -41,10 +45,19 @@ export const memberExpVisitor: object = {
   MemberExpression(path: Path): void{
     if (!isAComponent) return path.stop();
     if(path.node.property.name === 'setState'){
-      // console.log(`yee i'm inside of member expression`)
+      const arg0: Path = path.parentPath.get('arguments')[0];
+      if (t.isFunction(arg0.node) && (arg0.node.params.length)){
+        const setStateParam = arg0.get('params')[0].node
+        arg0.traverse({
+          MemberExpression(path: Path){
+            if(t.isIdentifier(path.node.object, {name: setStateParam.name})){
+              strRemover(path as Path, setStateParam.name as string)
+            }
+          }
+        })
+      }
       setStateToHooks(path.parentPath as Path);
     } else if (path.node.property.name === 'state' && t.isThisExpression(path.node.object)){
-      // console.log('gon change some state: ', path.node);
       stateToHooks(path.parentPath as Path);
     } else {
       thisRemover(path as Path);
@@ -55,7 +68,6 @@ export const memberExpVisitor: object = {
 export const classDeclarationVisitor: {ClassDeclaration: (path: Path) => void} = {
   ClassDeclaration(path: Path): void {
     isAComponent = path.node.superClass && (path.get('superClass').isIdentifier({name: 'Component'}) || path.get('superClass').get('property').isIdentifier({name: 'Component'}));
-    console.log('isAComponent:', isAComponent);
     if (!isAComponent) return path.stop();
     // class declaration
     let componentName: string = path.get('id').node.name;
@@ -64,12 +76,112 @@ export const classDeclarationVisitor: {ClassDeclaration: (path: Path) => void} =
     let possibleProps: string = '()';
     // useContext
     let contextToUse: string = '';
+    let isStatic: boolean = false;
+    let isContext: boolean = false;
+    let objectPattern: any;
+    let storedBlockStatement: any;
+    let multipleContexts: boolean = false;
     // useEffect
     const methodPaths: any[] = [];
     // handlers referencing state
-    const handlers: handlers[] = [];
+    const handlerDepTree: handlerDepTree = {}
     // dependency tree of state
     const stateDependencies: stateDep = {};
+    path.traverse({
+      ClassProperty(path: Path): void {
+        // checking for static context 'static contextType = ThemeContext'
+        if(path.node.static) isStatic = true;
+        if (!isStatic) path.stop();
+        contextToUse = path.node.value.name;
+      }
+    })
+    path.traverse({
+      // need to traverse through handlers first before checking them against references in lcms
+      ClassMethod(path: Path):void {
+        const cdm = checkKeyIdentifier(n.CDM, path),
+        cdu = checkKeyIdentifier(n.CDU, path),
+        cwu = checkKeyIdentifier(n.CWU, path),
+        render = checkKeyIdentifier(n.R, path),
+        constructor = checkKeyIdentifier(n.C, path);
+        if (!cdm && !cdu && !cwu && !render && !constructor) {
+          let handlerNode = path.node;
+          let name: string = path.node.key.name ? path.node.key.name : '';
+          let paramNames: any[] = path.node.params;
+          let body: any[] = path.node.body.body;
+          methodPaths.push([createFunctionDefinitions(name, paramNames, body), path]);
+          // check if a handler either setsState or references state
+          path.traverse({
+            ExpressionStatement(path: Path): void {
+              path.traverse({
+                MemberExpression(path: Path): void {
+                  const stateName: string = path.parentPath.node.property ? path.parentPath.node.property.name : null;
+                    if ((t.isIdentifier(path.node.property, {name: 'state'}) || t.isIdentifier(path.node.property, {name: 'props'})) && stateName) {
+                      buildHandlerDepTree(handlerDepTree, name, stateName, false, handlerNode);
+                    }
+                    if(t.isIdentifier(path.node.property, {name: 'setState'})) {
+                      let stateProperties: any[] | undefined;
+                       stateProperties = path.parentPath.node.arguments[0].properties;
+                      if (!stateProperties) {
+                          path.parentPath.node.arguments[0].body.body.forEach((bodyEl: Node) => {
+                            if (t.isReturnStatement(bodyEl)) stateProperties = bodyEl.argument.properties;
+                          })
+                       }
+                      stateProperties.forEach(property => {
+                        const setStateName: string = property.key.name;
+                        buildHandlerDepTree(handlerDepTree, name, setStateName, true, handlerNode);
+                      })
+                    
+                }
+              }
+              });
+            }
+          });
+        }
+        // traverse into variable declarator to check for a member expression with the name 'context'
+        path.traverse({
+          VariableDeclarator(path: Path): void {
+            path.traverse({
+              MemberExpression(path: Path): void {
+                if(path.node.property.name === "context"){
+                  // flip this boolean to run other functions dependent on it
+                  isContext = true;
+                }
+              }
+            })
+            // 
+            if(isContext){
+              if(path.node.id.type === "ObjectPattern"){
+                // check for destructured object
+                // should only run if we've found context
+                objectPattern = path.node.id;
+                path.parentPath.remove();
+              }
+            }  
+          }
+        })
+      }
+    });
+    // useContext:
+    // if we find a static property, that property is the context we're looking for and it is destructured then create a variable declarator for useContext
+    if(isStatic && isContext && objectPattern){
+      path.traverse({
+        ClassProperty(path: Path): void {
+          if(path.node.static) { 
+            path.replaceWith(
+              t.variableDeclaration("const",
+                [t.variableDeclarator(objectPattern,
+                  t.callExpression(
+                    t.identifier('useContext'),[
+                      t.identifier(`${contextToUse}`)
+                    ]
+                  )
+                )]
+              )
+            )
+          }
+        }
+      })
+    }
     path.traverse({
       ClassMethod(path: Path): void {
         let currMethodName = path.node.key.name;
@@ -78,28 +190,32 @@ export const classDeclarationVisitor: {ClassDeclaration: (path: Path) => void} =
         cwu = checkKeyIdentifier(n.CWU, path),
         render = checkKeyIdentifier(n.R, path),
         constructor = checkKeyIdentifier(n.C, path);
-        // traverse through all expression statements and function declarations within a classMethod
+        // traverse through all expression statements and function declarations within a classMethod to create general stateDepTree
         path.traverse({
           ExpressionStatement(path: Path): void {
             let expressionStatement: any = path.node;
             let functionDeclaration: any;
-            if (path.parentPath.parentPath.node.type === 'FunctionDeclaration'){
-              console.log('----------------')
-              console.log(path.parentPath.parentPath.node.id.name);
-              functionDeclaration = path.parentPath.parentPath.node;
-            }
+            if (path.parentPath.parentPath.node.type === 'FunctionDeclaration') functionDeclaration = path.parentPath.parentPath.node;
             path.traverse({
               MemberExpression(path: Path): void {
                 const stateName: string = path.parentPath.node.property ? path.parentPath.node.property.name : null;
                 let isHandler = checkIfHandler(currMethodName);
                 if (!isHandler) {
+                  // assign expressionstatement node to functiondeclaration node if there is one
                   if (functionDeclaration) expressionStatement = functionDeclaration;
+                  // check if the current member expression is a state object
                   if (t.isIdentifier(path.node.property, {name: 'state'}) && stateName) {
                     buildStateDepTree(currMethodName, expressionStatement, stateDependencies, stateName, false);
-                    console.log(stateDependencies);
                   }
+                  // check if member expression is a setState object
                   if(t.isIdentifier(path.node.property, {name: 'setState'})) {
-                    const stateProperties: any[] = path.parentPath.node.arguments[0].properties;
+                    let stateProperties: any[] | undefined;
+                       stateProperties = path.parentPath.node.arguments[0].properties;
+                      if (!stateProperties) {
+                          path.parentPath.node.arguments[0].body.body.forEach((bodyEl: Node) => {
+                            if (t.isReturnStatement(bodyEl)) stateProperties = bodyEl.argument.properties;
+                          })
+                       }
                     stateProperties.forEach(property => {
                       const setStateName: string = property.key.name;
                       buildStateDepTree(currMethodName, expressionStatement, stateDependencies, setStateName, true);
@@ -114,7 +230,6 @@ export const classDeclarationVisitor: {ClassDeclaration: (path: Path) => void} =
          // look specifically for the constructor method, where all the state is held
          let stateArr: any[];
          if(constructor){
-          // console.log('the path.node of ClassMethod: ', path.node)
           possibleProps = path.get('params')[0].node.name;
           path.traverse({
             // since constructor exists, state or method bindings should exist(?)
@@ -131,25 +246,43 @@ export const classDeclarationVisitor: {ClassDeclaration: (path: Path) => void} =
           })
           useStateData.push(path, stateArr);
         } 
-        if (!cdm && !cdu && !cwu && !render && !constructor) {
-          let name: string = path.node.key.name ? path.node.key.name : '';
-          let paramNames: any[] = path.node.params;
-          let body: any[] = path.node.body.body;
-          // console.log(path.node);
-          methodPaths.push([createFunctionDefinitions(name, paramNames, body), path]) 
-          handlers.push({node: path.node, name, setsState: false});
+        if (cdm || cdu || cwu) {
+          //traverse through lcm and check if a handler that uses state is referenced. If it is then build the handlerDepTree using the node that references that handler
+          path.traverse({
+            ExpressionStatement(path: Path): void {
+            // expressionStatement acts as a catch all for node paths. The variable can be reassigned to a node OTHER than an expression statement.
+              let expressionStatement: Node = path.node;
+              let functionDeclaration: Node;
+              if (path.parentPath.parentPath.node.type === 'FunctionDeclaration') functionDeclaration = path.parentPath.parentPath.node;
+              path.traverse({
+                MemberExpression(path: Path): void {
+                  // if the node path is wrapped by a function declaration reassign the expressionStatement to the functionDec
+                  if (functionDeclaration) expressionStatement = functionDeclaration;
+                  Object.keys(handlerDepTree).forEach(handlerName => {
+                    if (handlerName === path.node.property.name) {
+                      const stateNames = Object.keys(handlerDepTree[handlerName]);
+                      // loop through the stateNames array and build the handler dependency tree for the first pass
+                      stateNames.forEach(statename => {
+                        const setsState = handlerDepTree[handlerName][statename].setsState;
+                        const node = handlerDepTree[handlerName][statename].node;
+                        buildHandlerDepTree(handlerDepTree, handlerName, statename, setsState, node, currMethodName, expressionStatement)
+                      })
+                    }
+                  })            
+                }
+              })
+            }
+          })
+          path.remove();
         }
-        if(cdm) path.remove();
-        if(cdu) path.remove();
-        if(cwu) path.remove();
-        if(render) path.replaceWith(path.node.body.body[0]);
+        if(render) path.replaceWithMultiple(path.node.body.body);
      }
     })
     methodPaths.forEach(arr => {
       arr[1].replaceWith(arr[0])
     })
     // need to change position of useEffect so it's after state declarations
-    parseStateDep(stateDependencies).forEach(UE => {
+    parseStateDep(stateDependencies, handlerDepTree).forEach(UE => {
       path.get('body').unshiftContainer('body', UE);
     })
     // prepends 'const [state, setState] = useState(initVal)' outside of the constructor function
@@ -159,24 +292,28 @@ export const classDeclarationVisitor: {ClassDeclaration: (path: Path) => void} =
       JSXElement(path: Path): void {
         path.traverse({
           JSXMemberExpression(path: Path): void {
+            // useContext:
               //if right side of expression is "consumer", grab the value on the left side of the dot to constuct the useContext statement
-            if(path.node.property.name.toLowerCase() === 'consumer'){
-              // console.group('match found');
+            if(path.node.property.name.toLowerCase() === 'consumer' && DeclarationStore.includes(path.node.object.name)){
               // if DeclarationStore includes left side expession
-              if(DeclarationStore.includes(path.node.object.name)){
-                contextToUse = path.node.object.name;
-                console.log(contextToUse);
-                // console.log('context is found and contextToUse is', contextToUse);
+              // contextStore checks import statement context name against what is included as the context wrapper
+              if(!ContextStore.includes(path.node.object.name)){
+                // if they match, push the name into the ContextStore.
+                ContextStore.push(path.node.object.name);
               }
             }
-            if(path.node.object.name === contextToUse){
-              // console.log ('found a match!!')
-              path.replaceWith(
-                t.jSXMemberExpression(t.jSXIdentifier('React'), t.jSXIdentifier('Fragment'))
-              )
-            }
+            // check for multiple context consumers
+            if(ContextStore.length > 1)multipleContexts = true; 
+            else contextToUse = ContextStore[0];
+            // if there's a consumer context replace that node with a Fragment
+            if(path.node.property.name.toLowerCase() === 'consumer' &&  path.node.object.name === contextToUse){  
+                path.replaceWith(
+                  t.jSXMemberExpression(t.jSXIdentifier('React'), t.jSXIdentifier('Fragment'))
+                )
+              } 
           }
         })
+        if(!multipleContexts){
         path.traverse({
           JSXExpressionContainer(path: Path): void {
             let importedContext: string = 'imported' + contextToUse;
@@ -191,25 +328,62 @@ export const classDeclarationVisitor: {ClassDeclaration: (path: Path) => void} =
             })
           }
         })
+       }
+       if(multipleContexts){
+        ContextStore.forEach((e) => {
+          path.traverse({
+            JSXExpressionContainer(path: Path): void {
+              path.traverse({
+                ArrowFunctionExpression(path: Path): void {
+                      path.traverse({
+                        VariableDeclarator(path: Path): void {
+                          if(path.node.init.name !== undefined) {
+                            if(path.node.init.name.toUpperCase() === e.toUpperCase()){
+                              objectPattern = path.node.id;
+                              path.replaceWith(
+                                t.variableDeclarator(objectPattern,
+                                  t.callExpression(
+                                    t.identifier('useContext'),[
+                                      t.identifier(`${e}`)
+                                    ]
+                                  )
+                                )
+                              )
+                              path.stop();
+                            }
+                          } 
+                        } 
+                      })
+                  //grab block statement to swap with JSX opening element 
+                  if(path.node.body.type === "BlockStatement")storedBlockStatement = path.node.body.body;
+                }
+              })
+            }
+          })//end of forEach
+        })
+      }
       }
     })
-   
     path.traverse(memberExpVisitor);
-    path.get('body').unshiftContainer('body',
-      t.variableDeclaration("const", 
-      [t.variableDeclarator(
-        t.identifier('imported'+`${contextToUse}`), 
-        t.callExpression(t.identifier("useContext"),
-        [t.identifier(`${contextToUse}`)]
+    // if there is no static type context or multiple contexts then we set context name to the one we found in the import statement
+    if(!isStatic && !multipleContexts){
+      path.get('body').unshiftContainer('body',
+        t.variableDeclaration("const", 
+        [t.variableDeclarator(
+          t.identifier('imported'+`${contextToUse}`), 
+          t.callExpression(t.identifier("useContext"),
+          [t.identifier(`${contextToUse}`)]
+          )
+          )]
         )
-        )]
       )
-    ) 
-    path.replaceWith(
+    }
+    // looks for multiple context statements and gets new entire stored body
+    storedBlockStatement = multipleContexts ? storedBlockStatement : path.node.body.body;path.replaceWith(
       t.variableDeclaration("const", 
       [t.variableDeclarator(
         t.identifier(`${componentName}`), 
-        t.arrowFunctionExpression([t.identifier(possibleProps)], t.blockStatement(path.node.body.body)) 
+        t.arrowFunctionExpression([t.identifier(possibleProps)], t.blockStatement(storedBlockStatement)) 
         )
       ])
     )
