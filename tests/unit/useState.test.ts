@@ -32,13 +32,16 @@ describe('Turns state in a class method to useState equivalents',  () => {
     // find a way to check a node for no state declaration
     // also fine not to check as well
   })
-  xit('Converts class properties state to useState', () => {
+  xit(`Converts class properties 'state' to 'useState'`, () => {
     // find a way to convert class property state to hooks
     expect(str).toMatch(`const [short, setShort] = useState('syntax for constructor')`)
   })
+  xit(`Catches initialization of state within mounting or handlers`, () => {
+    // jesus christ is this necessary
+  })
 })
 
-describe(`Should convert 'this.state' expressions`, () => {
+describe(`Should convert 'this.(set)State' expressions`, () => {
   const str = ptg('./unit/components/StateToHooks.jsx', [visitors.ImpDeclVisitor, visitors.classDeclarationVisitor]);
   it(`Should change 'this.state.prop' to 'prop'`, () => {
     expect(str).toMatch('{prop}');
@@ -49,10 +52,20 @@ describe(`Should convert 'this.state' expressions`, () => {
   it(`Should change this.setState({ prop: 'a string'}) to 'setProp('a string')'`, () => {
     expect(str).toMatch(`setProp('this is another idea')`);
   })
-  xit('Should account for this.setState(callback)', () => {
-    // how do you even check for this. ETA: one day of thinking/whiteboarding to put into code
+  it(`Should account for 'this.setState(() => {... return  {}})'`, () => {
+    // accounting without arg in anon func
+    expect(str).toMatch(`const str = 'because this is another edge case out of many';`)
+    expect(str).toMatch(`setOhno(str)`)
   })
-  xit(`Should account for 'this.setState(() => {})'`, () => {
-    // harder edge case than cb but relatively understandable
+  it(`Should account for 'this.setState((prevProps) => {... return {}})`, () => {
+    // accounting for arg in anon func
+    expect(str).toMatch(`const str1 = holy + ' because this is another edge case out of many';\n    setOhno(str1);`)
+  })
+  xit(`Accounts for this.setState((state) => ({ state }))`, () => {
+    // UE logic needs ANOTHER edge case
+    expect(str).toMatch(`setNice(nice + 's')`)
+  })
+  xit('Should account for this.setState(callback)', () => {
+    // how to account for, find and change locally defined functions locally and appropriately
   })
 })

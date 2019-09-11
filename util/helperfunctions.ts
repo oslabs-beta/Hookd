@@ -309,7 +309,7 @@ export function setStateToHooks(parentPath: any): void {
   if (t.isFunction(arg0) && t.isBlock(arg0.body)) {
     const expressions = arg0.body.body;
     for (let i = 0; i < expressions.length; i++) {
-      if (t.isReturnStatement(expressions[i])) {args = expressions[i].argument.properties;}
+      if (t.isReturnStatement(expressions[i])) args = expressions[i].argument.properties;
       else parentPath.insertBefore(expressions[i])
     }
   }
@@ -332,24 +332,24 @@ export function setStateToHooks(parentPath: any): void {
  * turns 'this.state.example' expressions to 'example'
  * @param parentPath path.parentPath. this. what it says.
  */
-  export function stateToHooks (parentPath: any): void {
-    if (t.isMemberExpression(parentPath.parentPath.node)) parentPath.parentPath.node.object = parentPath.node.property;
-	  else parentPath.replaceWith(parentPath.node.property);
+export function stateToHooks (parentPath: any): void {
+  if (t.isMemberExpression(parentPath.parentPath.node)) parentPath.parentPath.node.object = parentPath.node.property;
+  else parentPath.replaceWith(parentPath.node.property);
+}
+/**
+ * will DECIMATE all other this statements no matter what. Used within MemberExpression Visitor
+ * WARNING: will literally destroy any and all 'this' statements
+ * @param path pass in the path of MemberExpression where it will look for anything that has to do with 'this'
+ */
+export function thisRemover(path: any): void {
+  if (t.isThisExpression(path.node.object)){
+    if (t.isMemberExpression(path.node)) path.node.object = path.node.property;
+    if (t.isCallExpression(path.node)) path.node.callee = path.node.property;
+    else path.replaceWith(path.node.property);
   }
+}
 
-  /**
-   * will DECIMATE all other this statements no matter what. Used within MemberExpression Visitor
-   * WARNING: will literally destroy any and all 'this' statements
-   * @param path pass in the path of MemberExpression where it will look for anything that has to do with 'this'
-   */
-  export function thisRemover(path: any): void {
-    if (t.isThisExpression(path.node.object)){
-      if (t.isMemberExpression(path.node)) path.node.object = path.node.property;
-      if (t.isCallExpression(path.node)) path.node.callee = path.node.property;
-      else path.replaceWith(path.node.property);
-    }
-  }
-  /**
+/**
  * alternative of thisRemover; will remove specified string's member expression
  * @param path pass in the path of MemberExpression where it will look for anything that has to do with 'str'
  * @param str the str to remove in syntax tree
