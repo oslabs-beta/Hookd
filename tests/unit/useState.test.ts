@@ -61,6 +61,9 @@ describe(`Should convert 'this.(set)State' expressions`, () => {
     // accounting for arg in anon func
     expect(str).toMatch(`const str1 = holy + ' because this is another edge case out of many';\n    setOhno(str1);`)
   })
+  it(`Accounts for this.setState((state) => ({ state }))`, () => {
+    expect(str).toMatch(`setNice(nice + 's')`)
+  })
   xit('Should account for this.setState(callback)', () => {
     // how to account for, find and change locally defined functions locally and appropriately
   })

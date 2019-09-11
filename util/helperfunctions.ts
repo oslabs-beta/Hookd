@@ -309,7 +309,7 @@ export function setStateToHooks(parentPath: any): void {
   if (t.isFunction(arg0) && t.isBlock(arg0.body)) {
     const expressions = arg0.body.body;
     for (let i = 0; i < expressions.length; i++) {
-      if (t.isReturnStatement(expressions[i])) {args = expressions[i].argument.properties;}
+      if (t.isReturnStatement(expressions[i])) args = expressions[i].argument.properties;
       else parentPath.insertBefore(expressions[i])
     }
   }

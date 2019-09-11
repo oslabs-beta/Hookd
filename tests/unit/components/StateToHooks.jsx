@@ -73,3 +73,23 @@ class Test3 extends Component {
     )
   }
 }
+
+class Test4 extends Component {
+  constructor(props) {
+    super(props)
+    this.state = {
+      nice: 'job'
+    }
+    this.handler = this.handler.bind(this);
+  }
+  handler(){
+    this.setState((state) => ({ nice: state.nice + 's' }))
+  }
+  render() {
+    return (
+      <div>
+        {this.state.nice}
+      </div>
+    )
+  }
+}

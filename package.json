@@ -7,7 +7,7 @@
     "dev": "NODE_ENV=development nodemon index.ts static/dummyData/App.jsx",
     "test": "jest"
   },
-  "keywords": [],
+  "keywords": ["compiler","cli", "tool", "alpha", "React", "React Hooks"],
   "author": "Devon Vaccarino, Danny Byrne, Alexander Diep",
   "license": "ISC",
   "bin": {
