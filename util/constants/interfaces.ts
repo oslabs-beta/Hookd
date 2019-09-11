@@ -3,7 +3,7 @@ export interface Node {
   type: string;
   name: string;
   Identifier: any;
-  body: {body: any[]};
+  body: {body: any[], type: string, properties: Node[]};
   params: any[];
   key: {name: string};
   arguments: any[];
@@ -15,8 +15,13 @@ export interface Node {
   operator:{body: any[]}
   program: {program: any};
   declaration: any;
+  static: boolean;
+  id: any;
+  properties: any[];
+  value: {name: string};
+  init: {name: string};
   callee: any;
-  value: any;
+  argument: Node;
 }
 export interface Path {
   node: Node;
@@ -36,6 +41,7 @@ export interface Path {
   remove: () => void;
   unshiftContainer: (newNode: Node) => void;
   isIdentifier:(type: boolean) => false;
+
 }
 export interface stateDep {
   [state: string]: stateProps;
@@ -54,12 +60,31 @@ node: Node;
 // check if a function
 setsState?: boolean;
 };
-export interface functionDeclaration {
-  node: Node;
-  setsState?: boolean;
-}
+// export interface functionDeclaration {
+//   node: Node;
+//   setsState?: boolean;
+// }
 export interface handlers {
   name?: string;
-  node?: any; 
+  node?: any;
+  stateName?: string; 
   setsState?: boolean; 
+}
+export interface handlerDepTree {
+  [name: string] : handlerObj  
+}
+export interface handlerObj {
+  [state: string]: {
+  //  array of lcms
+  lcms: {
+    // node that references the handler
+    expressionStatement: Node, 
+    // name of the lcm
+    name: string
+  }[],
+  // saves entire node of handler
+  node: Node;
+  // does the handler setState with this piece of state in particular
+  setsState: boolean;
+}
 }
