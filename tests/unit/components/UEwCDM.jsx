@@ -1,18 +1,19 @@
 import React, { Component } from 'react';
 
-class UseEffectCase1 extends React.Component {
+class UEwCDM1 extends React.Component {
   constructor(props){
     super(props);
     this.state = {}
   }
 
   componentDidMount() {
-    document.title = `Who wrote ${this.state.bookName}?`;
+    document.title = this.state.bookName;
   }
-
+  
   render(){
     return (
       <div></div>
     );
   }
 }
+

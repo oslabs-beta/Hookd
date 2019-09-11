@@ -1,3 +1,4 @@
+// constants file
 export const C: string = 'constructor';
 export const CDM: string = 'componentDidMount';
 export const CDU: string = 'componentDidUpdate';
