@@ -1,13 +1,20 @@
 {
   "name": "@reactionaries/hookd",
-  "version": "1.0.0",
+  "version": "0.0.21",
   "description": "a cli tool to convert React class components to hooks",
   "scripts": {
     "build": "NODE_ENV=production webpack",
     "dev": "NODE_ENV=development nodemon index.ts static/dummyData/App.jsx",
     "test": "jest"
   },
-  "keywords": ["compiler","cli", "tool", "alpha", "React", "React Hooks"],
+  "keywords": [
+    "compiler",
+    "cli",
+    "tool",
+    "alpha",
+    "React",
+    "React Hooks"
+  ],
   "author": "Devon Vaccarino, Danny Byrne, Alexander Diep",
   "license": "ISC",
   "bin": {
