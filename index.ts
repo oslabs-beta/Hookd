@@ -1,6 +1,6 @@
 // create functions here and export it in object
 
-import {parse,traverse,t,generate} from './util/constants/parser';
+import {parse,traverse,generate} from './util/constants/parser';
 import {ImpDeclVisitor, classDeclarationVisitor} from './util/constants/visitors';
 import * as fs from 'fs';
 import * as path from 'path';
