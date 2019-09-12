@@ -9,18 +9,9 @@
     "test": "jest"
   },
   "keywords": [
-    "compiler",
-    "cli",
-    "tool",
-    "alpha",
-    "React",
-    "React Hooks"
   ],
   "author": "Devon Vaccarino, Danny Byrne, Alexander Diep",
   "license": "ISC",
-  "bin": {
-    "hookd": "./index.js"
-  },
   "devDependencies": {
     "@babel/core": "^7.5.5",
     "@babel/preset-env": "^7.5.5",

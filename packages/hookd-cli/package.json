@@ -1,0 +1,33 @@
+{
+  "name": "@reactionaries/hookd-cli",
+  "version": "0.0.25",
+  "description": "a cli tool to convert React class components to hooks",
+  "keywords": [
+    "compiler",
+    "cli",
+    "tool",
+    "alpha",
+    "React",
+    "React Hooks"
+  ],
+  "author": "Devon Vaccarino, Danny Byrne, Alexander Diep",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/os-labs/Hookd.git"
+  },
+  "bugs": {
+    "url": "https://github.com/os-labs/Hookd/issues"
+  },
+  "bin": {
+    "hookd": "./cli.js"
+  },
+  "dependencies": {
+    "@babel/generator": "^7.5.5",
+    "@babel/parser": "^7.5.5",
+    "@babel/traverse": "^7.5.5",
+    "@babel/types": "^7.5.5",
+    "@types/node": "^12.7.2",
+    "babel-generator": "^6.26.1"
+  }
+}
