@@ -4,7 +4,10 @@ module.exports= {
   entry: './index.ts',
   output: {
     path: path.resolve(__dirname),
-    filename: 'index.js'
+    filename: 'index.js',
+    library: '',
+    libraryTarget: 'umd',
+    globalObject: 'this'
   },
   target: 'node',
   mode: process.env.NODE_ENV,

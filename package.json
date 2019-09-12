@@ -1,6 +1,6 @@
 {
   "name": "@reactionaries/hookd",
-  "version": "0.0.22",
+  "version": "0.0.23",
   "description": "a cli tool to convert React class components to hooks",
   "scripts": {
     "build": "NODE_ENV=production webpack",
