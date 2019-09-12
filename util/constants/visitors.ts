@@ -382,7 +382,8 @@ export const classDeclarationVisitor: {ClassDeclaration: (path: Path) => void} =
     })
     path.traverse(memberExpVisitor);
     // if there is no static type context or multiple contexts then we set context name to the one we found in the import statement
-    if(!isStatic && !multipleContexts && contextToUse !== ''){
+    if(!isStatic && !multipleContexts && contextToUse){
+      console.log(contextToUse);
       path.get('body').unshiftContainer('body',
         t.variableDeclaration("const", 
         [t.variableDeclarator(
