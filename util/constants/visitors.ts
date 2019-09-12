@@ -61,7 +61,7 @@ export const memberExpVisitor: object = {
         })
       }
       setStateToHooks(path.parentPath as Path);
-    } 
+    }
     // check if the node is just a state reference
     else if (path.node.property.name === 'state' && t.isThisExpression(path.node.object)){
       if(path.parentPath) stateToHooks(path.parentPath as Path);
