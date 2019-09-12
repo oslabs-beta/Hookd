@@ -1,6 +1,6 @@
 {
   "name": "@reactionaries/hookd-cli",
-  "version": "0.0.25",
+  "version": "0.0.26",
   "description": "a cli tool to convert React class components to hooks",
   "keywords": [
     "compiler",
@@ -14,10 +14,10 @@
   "license": "ISC",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/os-labs/Hookd.git"
+    "url": "git+https://github.com/oslabs-beta/Hookd.git"
   },
   "bugs": {
-    "url": "https://github.com/os-labs/Hookd/issues"
+    "url": "https://github.com/oslabs-beta/Hookd/issues"
   },
   "bin": {
     "hookd": "./cli.js"
