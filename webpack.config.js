@@ -1,14 +1,9 @@
 const path = require('path');
 const webpack = require('webpack');
-module.exports= {
-  entry: './index.ts',
-  output: {
-    path: path.resolve(__dirname),
-    filename: 'index.js',
-    library: '',
-    libraryTarget: 'umd',
-    globalObject: 'this'
-  },
+
+// building a knock-off webpack-merge
+// https://www.npmjs.com/package/webpack-merge
+const mainExport = {
   target: 'node',
   mode: process.env.NODE_ENV,
   resolve: {
@@ -37,10 +32,45 @@ module.exports= {
       },
     ]
   },
+}
+
+// options for makign cli
+const cli = {
+  entry: {
+    cli: './cli.ts'
+  },
+  output: {
+    path: path.resolve(__dirname, 'packages/hookd-cli'),
+    filename: '[name].js',
+    library: '',
+    libraryTarget: 'umd',
+    globalObject: 'this'
+  },
   plugins: [
     new webpack.BannerPlugin({ banner: "#!/usr/bin/env node", raw: true})
   ],
   node:{
     __dirname: true,
   }
-};
+}
+
+// options for making the main module
+const index = {
+  entry: {
+    index:'./index.ts',
+  },
+  output: {
+    path: path.resolve(__dirname, 'packages/hookd'),
+    filename: '[name].js',
+    library: '',
+    libraryTarget: 'umd',
+    globalObject: 'this'
+  },
+}
+
+// conditionals to assign proper variables to build env
+if (process.env.BUILD === 'cli') Object.assign(mainExport, cli);
+else if (process.env.BUILD === 'index') Object.assign(mainExport, index);
+
+// exports mutated mainExport
+module.exports = mainExport;
