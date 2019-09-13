@@ -7,7 +7,7 @@ To install:
 
 To use:
 ```
-const hookd = require('@reactionaries/hookd');
+const hookd = require('hookd');
 
 // returns a functional component as a string
 hookd(someClassComponentAsAString)
