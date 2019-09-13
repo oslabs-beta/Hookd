@@ -39,3 +39,4 @@ useEffect syntax in particular makes assumptions about stateful references withi
 Hookd will then build up each hook with a callback, return statement, and dependency array depending on the case that it requires.  useEffect accomplishes this by building a state dependency tree of all stateful references, the lifecycle method they were called in and whether a setState call was invoked.  While these factors should determine most use cases for useEffect they are hardly all encompassing. As this is an alpha release we hope to increase the amount of edge cases it accounts for. 
 
 ### useContext
+The useContext logic parses through the AST looking for indicators that Context API functions have been utlized, it then generates useContext cases based upon the values assiciated with those indicators. JSX context.consumer tags will be removed in the next update.
