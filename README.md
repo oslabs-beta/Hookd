@@ -1,14 +1,13 @@
 # Hookd
 A cli tool for converting React class components to functional components with hooks.
-- To use as a global tool:
-  - Clone the repo
-  - `[sudo] npm link`
-  - `[sudo] hookd <filePath>`
-- To use as a npm cl tool:
-  - `npm i -D @reactionaries/hookd`
-  - create a `package.json` script for hookd
 
-Then Hookd will create a `/hookd` directory with your newly converted file
+We have two NPM modules for usage:
+
+[@reactionaries/hookd](https://github.com/oslabs-beta/Hookd/tree/master/packages/hookd) is our module
+
+[@reactionaries/hookd-cli](https://github.com/oslabs-beta/Hookd/tree/master/packages/hookd-cli) is our cli tool
+
+Hookd will create a `/hookd` directory with your newly converted file
 ## Babel
 Babel will be the main tool for parsing traversal and generating your new code.
 ## Resources
@@ -26,13 +25,15 @@ Babel will be the main tool for parsing traversal and generating your new code.
 ### AST Explorer
   - [AST Explorer](https://astexplorer.net/) receives a special thanks
 
-### Alpha Release
+## Alpha Release
 Hookd is a transpilation and transformation tool for React projects looking to slowly convert their projects into functional components with hooks.
 Currently hookd only supports the major 3 hooks: useState, useEffect, useContext. Since the transfer of class component syntax to functional component syntax is not a direct one to one relationship, hookd transforms syntax nodes and tries to make assumptions about the logic of your application and build a new file based off those assumptions.
 Due to our early release, the tool should primarily be used as a templating tool to create files that you can later build upon rather than an immediate replacement for all your class components.
 
 ### useState
-
+- useState makes assumptions about `this.setState(cb)` where cb will `return` an object literal.  It does not keep track of _any_ variables and thus should be accounted for during transformation. If the `cb` were to return something else besides an object literal, it will break.
+- `this.setState(() => {})` and `this.setState(function(){})` will work fine but `this.setState(() => ())` will break. The code assumes the body of the `ArrowFunctionExpression` will be a `BlockStatement`.
+- More syntaxes to account for that we have not thought about
 
 ### useEffect
 useEffect syntax in particular makes assumptions about stateful references within componentDidMount, componentDidUpdate, and componentWillUnmount to build one or multiple useEffect hooks.  Additionally hookd will try to find stateful references within the body of any non-life cycle method handlers and look again for those handlers within the life cycle methods.

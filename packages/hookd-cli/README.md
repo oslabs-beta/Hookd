@@ -8,4 +8,4 @@ or to use globally
 - `npm i -g @reactionaries/hookd-cli`
 - and run `hookd` command anywhere
 
-and the file will be outputted to the created `/hookd` directorfolder in the current directory
+and the file will be outputted to the created `/hookd` directory folder in the current directory
