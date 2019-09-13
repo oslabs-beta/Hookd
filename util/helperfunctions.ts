@@ -301,13 +301,12 @@ export function setStateToHooks(parentPath: any): void {
   // props of the object in setState to iterate through
   let args: Node[] | undefined = parentPath.node.arguments[0].properties;
   // escape hatch for updater version of setState if the return statement doesn't contain any properties.
-  // comment to allow for more tests to pass :^)
   if (!args) return;
   // node of arg[0] of setState
   const arg0: Node = parentPath.node.arguments[0];
   // if arg[0] is a func and has a parameter
   // node of arg[1] of setState
-  const arg1: Node | undefined = parentPath.node.arguments[1];
+  const arg1: Node | undefined =  parentPath.node.arguments[1];
   // if arg[0] is not an object, assume it's an anonymous cb function
   if (t.isFunction(arg0) && t.isBlock(arg0.body)) {
     const expressions = arg0.body.body;
