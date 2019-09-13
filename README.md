@@ -25,3 +25,17 @@ Babel will be the main tool for parsing traversal and generating your new code.
   - [jamiebuilds' babel handbook](https://github.com/jamiebuilds/babel-handbook/blob/master/translations/en/plugin-handbook.md) fundamentals for creating babel plugins
 ### AST Explorer
   - [AST Explorer](https://astexplorer.net/) receives a special thanks
+
+### Alpha Release
+Hookd is a transpilation and transformation tool for React projects looking to slowly convert their projects into functional components with hooks.
+Currently hookd only supports the major 3 hooks: useState, useEffect, useContext. Since the transfer of class component syntax to functional component syntax is not a direct one to one relationship, hookd transforms syntax nodes and tries to make assumptions about the logic of your application and build a new file based off those assumptions.
+Due to our early release, the tool should primarily be used as a templating tool to create files that you can later build upon rather than an immediate replacement for all your class components.
+
+### useState
+
+
+### useEffect
+useEffect syntax in particular makes assumptions about stateful references within componentDidMount, componentDidUpdate, and componentWillUnmount to build one or multiple useEffect hooks.  Additionally hookd will try to find stateful references within the body of any non-life cycle method handlers and look again for those handlers within the life cycle methods.
+Hookd will then build up each hook with a callback, return statement, and dependency array depending on the case that it requires.  useEffect accomplishes this by building a state dependency tree of all stateful references, the lifecycle method they were called in and whether a setState call was invoked.  While these factors should determine most use cases for useEffect they are hardly all encompassing. As this is an alpha release we hope to increase the amount of edge cases it accounts for. 
+
+### useContext
