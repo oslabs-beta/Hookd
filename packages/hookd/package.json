@@ -1,6 +1,6 @@
 {
   "name": "@reactionaries/hookd",
-  "version": "0.0.26",
+  "version": "0.0.27",
   "description": "a module to convert React class components to hooks",
   "keywords": [
     "compiler",
@@ -14,10 +14,10 @@
   "license": "ISC",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/os-labs/Hookd.git"
+    "url": "git+https://github.com/oslabs-beta/Hookd.git"
   },
   "bugs": {
-    "url": "https://github.com/os-labs/Hookd/issues"
+    "url": "https://github.com/oslabs-beta/Hookd/issues"
   },
   "dependencies": {
     "@babel/generator": "^7.5.5",
