@@ -1,6 +1,6 @@
 {
   "name": "@reactionaries/hookd-cli",
-  "version": "0.0.26",
+  "version": "0.0.27",
   "description": "a cli tool to convert React class components to hooks",
   "keywords": [
     "compiler",
