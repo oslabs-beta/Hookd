@@ -15,6 +15,8 @@ export const ImpSpecVisitor: {ImportSpecifier: (path: Path)=> void} ={
     }
     // check to see if the property 'imported' is an identifier with the name 'Component'
     if (path.get('imported').isIdentifier({name: 'Component'})) {
+      console.log("path.node is:", path.node)
+      console.log('found an import statement')
       // replace the current path (importSpecifier) with multiple new importSpcefiers
       path.replaceWithMultiple([
         t.importSpecifier(t.identifier(n.US), t.identifier(n.US)),
@@ -28,6 +30,7 @@ export const ImpSpecVisitor: {ImportSpecifier: (path: Path)=> void} ={
 
 export const ImpDeclVisitor: {ImportDeclaration: (path: Path) => void} = { 
   ImportDeclaration(path: Path): void {
+    console.log('inside impdecl visitor')
     if (!isAComponent) return path.stop();
     path.traverse(ImpSpecVisitor)
     path.traverse({
@@ -67,6 +70,7 @@ export const memberExpVisitor: object = {
 
 export const classDeclarationVisitor: {ClassDeclaration: (path: Path) => void} = {
   ClassDeclaration(path: Path): void {
+    console.log('inside the class declaration visitor')
     isAComponent = path.node.superClass && (path.get('superClass').isIdentifier({name: 'Component'}) || path.get('superClass').get('property').isIdentifier({name: 'Component'}));
     if (!isAComponent) return path.stop();
     // class declaration
