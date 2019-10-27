@@ -1,0 +1,30 @@
+{
+  "name": "@reactionaries/hookd",
+  "version": "0.0.27",
+  "description": "a module to convert React class components to hooks",
+  "keywords": [
+    "compiler",
+    "cli",
+    "tool",
+    "alpha",
+    "React",
+    "React Hooks"
+  ],
+  "author": "Devon Vaccarino, Danny Byrne, Alexander Diep",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oslabs-beta/Hookd.git"
+  },
+  "bugs": {
+    "url": "https://github.com/oslabs-beta/Hookd/issues"
+  },
+  "dependencies": {
+    "@babel/generator": "^7.5.5",
+    "@babel/parser": "^7.5.5",
+    "@babel/traverse": "^7.5.5",
+    "@babel/types": "^7.5.5",
+    "@types/node": "^12.7.2",
+    "babel-generator": "^6.26.1"
+  }
+}

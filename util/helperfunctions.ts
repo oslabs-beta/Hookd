@@ -135,15 +135,15 @@ export function parseStateDep(stateDep: stateDep, handlerDepTree? : handlerDepTr
       stateToCheck: []
     };
     // catches duplicates within nodes- doesn't work currently because the nodes are all unique and can't be used as key pairs to check against. Need some other criteria to cache so we don't create duplicates.
-    const nodeCache: any = {};
+    // const nodeCache: any = {};
     if(stateDep[state].lcms) {
       stateDep[state].lcms.forEach(lcm => {
         const setsState: boolean = lcm.expressionStatement.setsState 
         const node: Node = lcm.expressionStatement.node;
-        const nodeKey = JSON.stringify(node);
+        // const nodeKey = JSON.stringify(node);
         const CDU: boolean = lcm.name === n.CDU;
         const CWU: boolean = lcm.name === n.CWU;
-        if (!nodeCache[nodeKey]){
+        // if (!nodeCache[nodeKey]){
           if (!CDU && !setsState && !CWU) {
             opts.stateToCheck = null;
             body.push(node);
@@ -162,8 +162,8 @@ export function parseStateDep(stateDep: stateDep, handlerDepTree? : handlerDepTr
           if (CWU) {
             opts.returnFunction.push(node);
           }
-          nodeCache[nodeKey] = true;
-        }
+          // nodeCache[nodeKey] = true;
+        // }
       })
       useEffectArr.push(createUseEffect(body, opts));
     }
@@ -300,6 +300,8 @@ export function setStateToHooks(parentPath: any): void {
   const states: Node[] = [];
   // props of the object in setState to iterate through
   let args: Node[] | undefined = parentPath.node.arguments[0].properties;
+  // escape hatch for updater version of setState if the return statement doesn't contain any properties.
+  if (!args) return;
   // node of arg[0] of setState
   const arg0: Node = parentPath.node.arguments[0];
   // if arg[0] is a func and has a parameter

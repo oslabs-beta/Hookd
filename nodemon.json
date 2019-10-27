@@ -3,7 +3,8 @@
     "ignore": [
       "ast.jsx",
       "node_modules",
-      "test/*"
+      "test/*",
+      "static"
     ]
   }
 }

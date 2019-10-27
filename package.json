@@ -1,0 +1,46 @@
+{
+  "name": "@reactionaries/hookd",
+  "version": "0.0.25",
+  "description": "a cli tool to convert React class components to hooks",
+  "scripts": {
+    "build:ind": "NODE_ENV=production BUILD=index webpack",
+    "build:cli": "NODE_ENV=production BUILD=cli webpack",
+    "dev": "NODE_ENV=development nodemon index.ts static/dummyData/App.jsx",
+    "test": "jest"
+  },
+  "keywords": [
+  ],
+  "author": "Devon Vaccarino, Danny Byrne, Alexander Diep",
+  "license": "ISC",
+  "devDependencies": {
+    "@babel/core": "^7.5.5",
+    "@babel/preset-env": "^7.5.5",
+    "@babel/preset-react": "^7.0.0",
+    "@babel/preset-typescript": "^7.3.3",
+    "@types/jest": "^24.0.18",
+    "@types/react": "^16.9.2",
+    "@types/react-dom": "^16.9.0",
+    "babel-loader": "^8.0.6",
+    "banner-webpack-plugin": "^0.2.3",
+    "css-loader": "^3.2.0",
+    "jest": "^24.9.0",
+    "nodemon": "^1.19.1",
+    "sass-loader": "^7.2.0",
+    "style-loader": "^1.0.0",
+    "ts-jest": "^24.0.2",
+    "ts-loader": "^6.0.4",
+    "ts-node": "^8.3.0",
+    "typescript": "^3.5.3",
+    "webpack": "^4.39.3",
+    "webpack-cli": "^3.3.7",
+    "webpack-dev-server": "^3.8.0"
+  },
+  "dependencies": {
+    "@babel/generator": "^7.5.5",
+    "@babel/parser": "^7.5.5",
+    "@babel/traverse": "^7.5.5",
+    "@babel/types": "^7.5.5",
+    "@types/node": "^12.7.2",
+    "babel-generator": "^6.26.1"
+  }
+}
