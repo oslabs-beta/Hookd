@@ -15,8 +15,6 @@ export const ImpSpecVisitor: {ImportSpecifier: (path: Path)=> void} ={
     }
     // check to see if the property 'imported' is an identifier with the name 'Component'
     if (path.get('imported').isIdentifier({name: 'Component'})) {
-      console.log("path.node is:", path.node)
-      console.log('found an import statement')
       // replace the current path (importSpecifier) with multiple new importSpcefiers
       path.replaceWithMultiple([
         t.importSpecifier(t.identifier(n.US), t.identifier(n.US)),
