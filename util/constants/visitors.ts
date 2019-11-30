@@ -28,6 +28,7 @@ export const ImpSpecVisitor: {ImportSpecifier: (path: Path)=> void} ={
 
 export const ImpDeclVisitor: {ImportDeclaration: (path: Path) => void} = { 
   ImportDeclaration(path: Path): void {
+    console.log('inside impdecl visitor')
     if (!isAComponent) return path.stop();
     path.traverse(ImpSpecVisitor)
     path.traverse({
@@ -73,6 +74,7 @@ export const memberExpVisitor: object = {
 
 export const classDeclarationVisitor: {ClassDeclaration: (path: Path) => void} = {
   ClassDeclaration(path: Path): void {
+    console.log('inside the class declaration visitor')
     isAComponent = path.node.superClass && (path.get('superClass').isIdentifier({name: 'Component'}) || path.get('superClass').get('property').isIdentifier({name: 'Component'}));
     if (!isAComponent) return path.stop();
     // class declaration
