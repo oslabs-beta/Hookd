@@ -7,7 +7,7 @@ const HooksStatements: string[] = ['useState', 'useEffect', 'useContext'];
 const ContextStore: string[] = [];
 const DeclarationStore: string[] = [];
 let isAComponent: boolean = true;
-export const ImpSpecVisitor: {ImportSpecifier: (path: Path)=> void} ={
+export const ImpSpecVisitor: {ImportSpecifier: (path: Path) => void} = {
   // method for traversing through all the ImportSpecifiers
   ImportSpecifier(path: Path): void {
     if(!HooksStatements.includes(path.node.local.name)){
@@ -22,13 +22,11 @@ export const ImpSpecVisitor: {ImportSpecifier: (path: Path)=> void} ={
         t.importSpecifier(t.identifier(n.UC), t.identifier(n.UC)),
       ]);
     }
-    
   }
 }
 
 export const ImpDeclVisitor: {ImportDeclaration: (path: Path) => void} = { 
   ImportDeclaration(path: Path): void {
-    console.log('inside impdecl visitor')
     if (!isAComponent) return path.stop();
     path.traverse(ImpSpecVisitor)
     path.traverse({
@@ -74,7 +72,6 @@ export const memberExpVisitor: object = {
 
 export const classDeclarationVisitor: {ClassDeclaration: (path: Path) => void} = {
   ClassDeclaration(path: Path): void {
-    console.log('inside the class declaration visitor')
     isAComponent = path.node.superClass && (path.get('superClass').isIdentifier({name: 'Component'}) || path.get('superClass').get('property').isIdentifier({name: 'Component'}));
     if (!isAComponent) return path.stop();
     // class declaration
@@ -141,7 +138,7 @@ export const classDeclarationVisitor: {ClassDeclaration: (path: Path) => void} =
                           const setStateName: string = property.key.name;
                           buildHandlerDepTree(handlerDepTree, name, setStateName, true, handlerNode);
                         })                        
-                       }    
+                      }    
                 }
               }
               });
@@ -173,7 +170,7 @@ export const classDeclarationVisitor: {ClassDeclaration: (path: Path) => void} =
       }
     });
     // useContext:
-    // if we find a static property, that property is the context we're looking for and it is destructured then create a variable declarator for useContext
+    // if we find a static property, that property is the context we're looking for and it is destructured, then create a variable declarator for useContext
     if(isStatic && isContext && objectPattern){
       path.traverse({
         ClassProperty(path: Path): void {
@@ -325,29 +322,29 @@ export const classDeclarationVisitor: {ClassDeclaration: (path: Path) => void} =
             else contextToUse = ContextStore[0];
             // if there's a consumer context replace that node with a Fragment
             if(path.node.property.name.toLowerCase() === 'consumer' &&  path.node.object.name === contextToUse){  
-                path.replaceWith(
-                  t.jSXMemberExpression(t.jSXIdentifier('React'), t.jSXIdentifier('Fragment'))
-                )
-              } 
+              path.replaceWith(
+                t.jSXMemberExpression(t.jSXIdentifier('React'), t.jSXIdentifier('Fragment'))
+              )
+            } 
           }
         })
         if(!multipleContexts && contextToUse !== ''){
-        path.traverse({
-          JSXExpressionContainer(path: Path): void {
-            let importedContext: string = 'imported' + contextToUse;
-            path.traverse({
-              ArrowFunctionExpression(path: Path): void{
-                path.replaceWith(
-                  t.ExpressionStatement(
-                    t.identifier(`${importedContext}`)
+          path.traverse({
+            JSXExpressionContainer(path: Path): void {
+              let importedContext: string = 'imported' + contextToUse;
+              path.traverse({
+                ArrowFunctionExpression(path: Path): void{
+                  path.replaceWith(
+                    t.ExpressionStatement(
+                      t.identifier(`${importedContext}`)
+                    )
                   )
-                )
-              }
-            })
-          }
-        })
-       }
-       if(multipleContexts){
+                }
+              })
+            }
+          })
+        }
+      if(multipleContexts){
         ContextStore.forEach((e) => {
           path.traverse({
             JSXExpressionContainer(path: Path): void {
@@ -385,7 +382,6 @@ export const classDeclarationVisitor: {ClassDeclaration: (path: Path) => void} =
     path.traverse(memberExpVisitor);
     // if there is no static type context or multiple contexts then we set context name to the one we found in the import statement
     if(!isStatic && !multipleContexts && contextToUse){
-      console.log(contextToUse);
       path.get('body').unshiftContainer('body',
         t.variableDeclaration("const", 
         [t.variableDeclarator(
@@ -408,4 +404,4 @@ export const classDeclarationVisitor: {ClassDeclaration: (path: Path) => void} =
       ])
     )
   }
-  }
+}
